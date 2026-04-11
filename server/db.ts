@@ -58,31 +58,50 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// ─── Dashboard KPIs ───────────────────────────────────────────────────────────
+// ─── Dashboard KPIs ────────────────────────────────────────────────────────────────
 export async function getDashboardKPIs(startDate: string, endDate: string) {
   const db = await getDb();
   if (!db) return null;
 
+  // Sales & fuel metrics from daily_reports
   const salesRows = await db.select({
     totalSales: sql<number>`COALESCE(SUM(totalSalesValue), 0)`,
-    totalExpenses: sql<number>`COALESCE(SUM(totalExpenses), 0)`,
     totalCollected: sql<number>`COALESCE(SUM(totalCollected), 0)`,
     totalBankDeposit: sql<number>`COALESCE(SUM(bankDeposit), 0)`,
-    cashBalance: sql<number>`COALESCE(SUM(cashBalance), 0)`,
+    // Cash balance = last day's closing balance (MAX by date, not SUM)
+    cashBalance: sql<number>`COALESCE((SELECT cashBalance FROM daily_reports WHERE reportDate <= ${endDate} ORDER BY reportDate DESC LIMIT 1), 0)`,
     grossProfit: sql<number>`COALESCE(SUM(grossProfit), 0)`,
-    netProfit: sql<number>`COALESCE(SUM(netProfit), 0)`,
     petrolQty: sql<number>`COALESCE(SUM(petrolSalesQty), 0)`,
     dieselQty: sql<number>`COALESCE(SUM(dieselSalesQty), 0)`,
   }).from(dailyReports).where(
     sql`${dailyReports.reportDate} >= ${startDate} AND ${dailyReports.reportDate} <= ${endDate}`
   );
 
-   const recRows = await db.select({
+  // Operating expenses from expenses ledger (approved only)
+  // True Net Profit = Gross Profit − Operating Expenses
+  const expRows = await db.select({
+    totalExpenses: sql<number>`COALESCE(SUM(amount), 0)`,
+  }).from(expenses).where(
+    sql`${expenses.expenseDate} >= ${startDate} AND ${expenses.expenseDate} <= ${endDate} AND ${expenses.approvalStatus} = 'approved'`
+  );
+
+  // Outstanding receivables (all-time, not date-filtered — it's a balance sheet item)
+  const recRows = await db.select({
     totalReceivables: sql<number>`COALESCE(SUM(outstandingBalance), 0)`,
   }).from(customers).where(sql`outstandingBalance > 0`);
+
   const salesResult = salesRows[0];
-  const recResult = recRows[0];
-  return { ...salesResult, totalReceivables: recResult?.totalReceivables ?? 0 };
+  const totalExpenses = Number(expRows[0]?.totalExpenses ?? 0);
+  const grossProfit = Number(salesResult?.grossProfit ?? 0);
+  // True net profit = gross profit from fuel sales minus all operating expenses
+  const netProfit = grossProfit - totalExpenses;
+
+  return {
+    ...salesResult,
+    totalExpenses,
+    netProfit,
+    totalReceivables: recRows[0]?.totalReceivables ?? 0,
+  };
 }
 
 export async function getDailyTrend(days: number) {

@@ -120,3 +120,11 @@
 - [x] Apply button triggers KPI and chart data refresh for the custom range
 - [x] Chart title updates to show the selected custom range dates
 - [x] KPI sub-label updates to show the custom range (e.g. "2025-06-01 – 2025-08-31")
+
+## Data Integrity Audit & Dashboard Expenses KPI
+- [x] Audit Net Profit: root cause found — daily_reports.netProfit only deducts same-day expenses, not full operating expenses ledger
+- [x] Verified: True Net Profit = grossProfit − expenses_table = ₹21,74,677.21 vs Excel ₹21,74,293.67 (₹383 rounding diff)
+- [x] Fixed getDashboardKPIs: now queries expenses table for totalExpenses and computes netProfit = grossProfit − totalExpenses
+- [x] Fixed cashBalance: now uses last day's closing balance (subquery) instead of SUM of all days
+- [x] Added Expenses KPI card to Dashboard (5-card grid: Sales / Gross Profit / Expenses / Net Profit / Outstanding)
+- [x] Net Profit sub-label shows formula: "Margin: X% • Gross − Expenses"

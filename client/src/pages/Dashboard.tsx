@@ -151,10 +151,13 @@ export default function Dashboard() {
 
   const totalSales = Number(kpis?.totalSales ?? 0);
   const netProfit = Number(kpis?.netProfit ?? 0);
+  const totalExpenses = Number(kpis?.totalExpenses ?? 0);
+  const grossProfit = Number(kpis?.grossProfit ?? 0);
   const cashBalance = Number(kpis?.cashBalance ?? 0);
   const totalReceivables = Number(kpis?.totalReceivables ?? 0);
   const totalCollected = Number(kpis?.totalCollected ?? 0);
   const collectionRate = totalSales > 0 ? ((totalCollected / totalSales) * 100).toFixed(1) : "0";
+  const netMargin = totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(1) : "0";
 
   return (
     <div className="space-y-6">
@@ -221,10 +224,11 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <KpiCard title="Total Sales" value={isLoading ? "—" : fmtCompact(totalSales)} sub={period === "today" ? "31 Mar 2026" : period === "week" ? "25–31 Mar 2026" : period === "ytd" ? "Apr 2025 – Mar 2026" : period === "custom" ? `${appliedFrom} – ${appliedTo}` : "Mar 2026"} icon={IndianRupee} trend="up" trendVal="+8.2%" colorClass="text-primary bg-primary/10 border-primary/20" />
-        <KpiCard title="Net Profit" value={isLoading ? "—" : fmtCompact(netProfit)} sub={`Margin: ${totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(1) : 0}%`} icon={TrendingUp} trend="up" trendVal="+3.1%" colorClass="text-green-400 bg-green-500/10 border-green-500/20" />
-        <KpiCard title="Cash Balance" value={isLoading ? "—" : fmtCompact(cashBalance)} sub="Available in hand" icon={Wallet} colorClass="text-blue-400 bg-blue-500/10 border-blue-500/20" />
+        <KpiCard title="Gross Profit" value={isLoading ? "—" : fmtCompact(grossProfit)} sub={`Fuel margin earned`} icon={TrendingUp} colorClass="text-amber-400 bg-amber-500/10 border-amber-500/20" />
+        <KpiCard title="Expenses" value={isLoading ? "—" : fmtCompact(totalExpenses)} sub="Operating costs" icon={Package} trend={totalExpenses > grossProfit * 0.5 ? "down" : undefined} colorClass="text-red-400 bg-red-500/10 border-red-500/20" />
+        <KpiCard title="Net Profit" value={isLoading ? "—" : fmtCompact(netProfit)} sub={`Margin: ${netMargin}% • Gross − Expenses`} icon={TrendingUp} trend={netProfit >= 0 ? "up" : "down"} trendVal={`${netMargin}%`} colorClass={netProfit >= 0 ? "text-green-400 bg-green-500/10 border-green-500/20" : "text-red-400 bg-red-500/10 border-red-500/20"} />
         <KpiCard title="Outstanding" value={isLoading ? "—" : fmtCompact(totalReceivables)} sub={`Collection: ${collectionRate}%`} icon={CreditCard} trend={totalReceivables > 500000 ? "down" : "up"} trendVal={`${collectionRate}%`} colorClass={totalReceivables > 500000 ? "text-red-400 bg-red-500/10 border-red-500/20" : "text-green-400 bg-green-500/10 border-green-500/20"} />
       </div>
 
