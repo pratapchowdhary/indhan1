@@ -128,3 +128,41 @@
 - [x] Fixed cashBalance: now uses last day's closing balance (subquery) instead of SUM of all days
 - [x] Added Expenses KPI card to Dashboard (5-card grid: Sales / Gross Profit / Expenses / Net Profit / Outstanding)
 - [x] Net Profit sub-label shows formula: "Margin: X% • Gross − Expenses"
+
+## Dashboard Chart Type Fixes
+- [x] Replace Expenses bar section with donut/pie chart showing breakdown by category (subHeadAccount)
+- [x] Add getExpenseBreakdown endpoint returning category totals for selected date range
+- [x] Sales vs Expenses trend: keep as AreaChart (correct — shows time-series trend)
+- [x] Sales Mix replaced with Expenses by Category donut (real data, responds to date filter)
+- [x] Fuel Margins: keep as card list (correct — shows fixed rates, not a chart)
+- [x] Top Customers by Outstanding: keep as list (correct — shows ranking)
+
+## Sales & Nozzles Module Fix
+- [x] Fixed "Module loading..." placeholder — built full Sales & Nozzles page
+- [x] KPI cards: Total Sales, Petrol Volume, Diesel Volume, Gross Profit
+- [x] Payment method cards: Cash / Card / Credit / Online with amounts
+- [x] Bar chart: daily Petrol vs Diesel volume (correct chart type for time-series)
+- [x] Payment Mix donut: Cash/Card/Credit/Online % breakdown
+- [x] Table: daily sales register with date, volumes, total sales, payment splits, status
+- [x] Period presets: Mar 2026 / Feb 2026 / Jan 2026 / Q4 FY26 / FY 25-26 / Custom
+
+## Comprehensive Test Suite (All Modules) — COMPLETE
+- [x] 138 total tests across 3 test files (auth.logout.test.ts, indhan.test.ts, comprehensive.test.ts)
+- [x] Auth: me, logout, unauthenticated access to all protected procedures
+- [x] Dashboard KPIs: normal MTD, FY range, single day, empty range, inverted range, formula correctness
+- [x] Dashboard KPIs: net profit = grossProfit − totalExpenses verified against Excel (₹383 tolerance)
+- [x] Dashboard trend: 30-day, 1-day, 365-day, boundary dates, date format validation (YYYY-MM-DD)
+- [x] Dashboard expense breakdown: category data, empty range, FY top category
+- [x] Customers: list, receivables, get by ID, null for non-existent ID, null for negative ID
+- [x] Customer payments: negative amount, zero amount, invalid date format, exceeds ₹1Cr
+- [x] Inventory: list, low stock, purchase orders, invalid PO status
+- [x] Expenses: list, summary, create, empty range; negative/zero/over-limit amounts rejected
+- [x] Expenses: empty description, invalid headAccount/subHeadAccount enums, SQL injection in date
+- [x] Bank: list, summary, create; negative withdrawal/deposit, invalid type, empty description, SQL injection
+- [x] Bank: invalid reconciliation status rejected
+- [x] Reconciliation: list, byDate, null for non-existent date, empty range, invalid status
+- [x] P&L: report fields, empty range returns zero, revenue field name verified
+- [x] Sales: list returns array, handles future date range
+- [x] Sathi AI: empty question rejected, >1000 chars rejected
+- [x] Router registration: all 38 procedures verified as registered
+- [x] Input validation: SQL injection via date fields blocked by Zod regex, wrong date formats rejected

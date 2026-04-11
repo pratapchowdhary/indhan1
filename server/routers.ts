@@ -40,6 +40,9 @@ const dashboardRouter = router({
   trendByRange: protectedProcedure.input(dateRangeInput).query(async ({ input }) => {
     return getDailyTrendByRange(input.startDate, input.endDate);
   }),
+  expenseBreakdown: protectedProcedure.input(dateRangeInput).query(async ({ input }) => {
+    return getExpenseSummaryByCategory(input.startDate, input.endDate);
+  }),
 });
 
 // ─── Customers Router ─────────────────────────────────────────────────────────

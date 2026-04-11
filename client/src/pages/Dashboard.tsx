@@ -1,4 +1,3 @@
-import { trpc } from "@/lib/trpc";
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +14,18 @@ import {
 import { format, subDays } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { CalendarRange } from "lucide-react";
+import { trpc } from "@/lib/trpc";
+
+const EXPENSE_COLORS = [
+  "oklch(0.60 0.22 25)",
+  "oklch(0.65 0.18 250)",
+  "oklch(0.78 0.15 65)",
+  "oklch(0.72 0.18 145)",
+  "oklch(0.68 0.20 310)",
+  "oklch(0.70 0.18 190)",
+  "oklch(0.75 0.15 35)",
+  "oklch(0.62 0.20 280)",
+];
 
 const fmtCompact = (n: number) => {
   if (n >= 10000000) return `₹${(n / 10000000).toFixed(2)}Cr`;
@@ -109,6 +120,18 @@ export default function Dashboard() {
   }
   const { data: lowStock } = trpc.inventory.lowStock.useQuery();
   const { data: topCustomers } = trpc.customers.topByOutstanding.useQuery();
+  const { data: expenseBreakdown } = trpc.dashboard.expenseBreakdown.useQuery({ startDate, endDate });
+
+  const expensePieData = useMemo(() => {
+    if (!expenseBreakdown || expenseBreakdown.length === 0) return [];
+    const totalExp = expenseBreakdown.reduce((s: number, e: any) => s + Number(e.total ?? 0), 0);
+    return expenseBreakdown.map((e: any, i: number) => ({
+      name: e.subHeadAccount ?? "Other",
+      value: Number(e.total ?? 0),
+      pct: totalExp > 0 ? Math.round((Number(e.total ?? 0) / totalExp) * 100) : 0,
+      color: EXPENSE_COLORS[i % EXPENSE_COLORS.length],
+    }));
+  }, [expenseBreakdown]);
 
   const chartData = useMemo(() => {
     if (activeSalesData && activeSalesData.length > 0) {
@@ -294,28 +317,42 @@ export default function Dashboard() {
 
         <Card className="bg-card border-border/50">
           <CardHeader className="pb-2 pt-4 px-5">
-            <CardTitle className="text-sm font-semibold">Sales Mix</CardTitle>
+            <CardTitle className="text-sm font-semibold">Expenses by Category</CardTitle>
           </CardHeader>
           <CardContent className="pb-4">
-            <ResponsiveContainer width="100%" height={160}>
-              <PieChart>
-                <Pie data={salesBreakdown} cx="50%" cy="50%" innerRadius={45} outerRadius={70} paddingAngle={3} dataKey="value">
-                  {salesBreakdown.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                </Pie>
-                <Tooltip formatter={(v) => `${v}%`} contentStyle={{ background: "oklch(0.17 0.014 240)", border: "1px solid oklch(0.26 0.016 240)", borderRadius: "8px", fontSize: "12px" }} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="space-y-2 mt-2">
-              {salesBreakdown.map(item => (
-                <div key={item.name} className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: item.color }} />
-                    <span className="text-muted-foreground">{item.name}</span>
-                  </div>
-                  <span className="font-semibold tabular-nums">{item.value}%</span>
+            {expensePieData.length > 0 ? (
+              <>
+                <ResponsiveContainer width="100%" height={160}>
+                  <PieChart>
+                    <Pie data={expensePieData} cx="50%" cy="50%" innerRadius={45} outerRadius={70} paddingAngle={3} dataKey="value">
+                      {expensePieData.map((entry: any, i: number) => <Cell key={i} fill={entry.color} />)}
+                    </Pie>
+                    <Tooltip
+                      formatter={(v: any, name: any, props: any) => [`${props.payload.pct}% (${fmtCompact(v)})`, name]}
+                      contentStyle={{ background: "oklch(0.17 0.014 240)", border: "1px solid oklch(0.26 0.016 240)", borderRadius: "8px", fontSize: "12px" }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="space-y-1.5 mt-2 max-h-[120px] overflow-y-auto">
+                  {expensePieData.map((item: any) => (
+                    <div key={item.name} className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: item.color }} />
+                        <span className="text-muted-foreground truncate max-w-[80px]">{item.name}</span>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <span className="font-semibold tabular-nums">{item.pct}%</span>
+                        <span className="text-muted-foreground ml-1">({fmtCompact(item.value)})</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </>
+            ) : (
+              <div className="h-[200px] flex items-center justify-center text-muted-foreground text-xs">
+                No expense data
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
