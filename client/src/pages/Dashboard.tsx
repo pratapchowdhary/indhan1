@@ -12,7 +12,9 @@ import {
   CreditCard, Wallet, Package, Users,
   ArrowUpRight, ArrowDownRight,
 } from "lucide-react";
-import { format, subDays, startOfMonth } from "date-fns";
+import { format, subDays } from "date-fns";
+import { Input } from "@/components/ui/input";
+import { CalendarRange } from "lucide-react";
 
 const fmtCompact = (n: number) => {
   if (n >= 10000000) return `₹${(n / 10000000).toFixed(2)}Cr`;
@@ -73,17 +75,38 @@ export default function Dashboard() {
   const latestDataMonthStart = "2026-03-01";
   const dataYearStart = "2025-04-01"; // Full financial year start
   const effectiveToday = latestDataDate; // Always use latest data date, not system clock
-  const [period, setPeriod] = useState<"today" | "week" | "mtd" | "ytd">("mtd");
+  const [period, setPeriod] = useState<"today" | "week" | "mtd" | "ytd" | "custom">("mtd");
+  // Custom date range state
+  const [customFrom, setCustomFrom] = useState(dataYearStart);
+  const [customTo, setCustomTo] = useState(latestDataDate);
+  const [appliedFrom, setAppliedFrom] = useState(dataYearStart);
+  const [appliedTo, setAppliedTo] = useState(latestDataDate);
+
   const startDate =
     period === "today" ? latestDataDate
     : period === "week" ? format(subDays(new Date(latestDataDate), 6), "yyyy-MM-dd")
     : period === "ytd" ? dataYearStart
+    : period === "custom" ? appliedFrom
     : latestDataMonthStart;
-  const { data: kpis, isLoading } = trpc.dashboard.kpis.useQuery({ startDate, endDate: effectiveToday });
-  // For FY view use date-range query (365 days), for other periods use last 30 days
-  const { data: dailySales } = trpc.dashboard.dailySalesTrend.useQuery({ days: 30 }, { enabled: period !== "ytd" });
-  const { data: fySales } = trpc.dashboard.trendByRange.useQuery({ startDate: dataYearStart, endDate: effectiveToday }, { enabled: period === "ytd" });
-  const activeSalesData = period === "ytd" ? fySales : dailySales;
+  const endDate =
+    period === "custom" ? appliedTo : effectiveToday;
+
+  const { data: kpis, isLoading } = trpc.dashboard.kpis.useQuery({ startDate, endDate });
+  // For FY/custom view use date-range query, for other periods use last 30 days
+  const useRangeQuery = period === "ytd" || period === "custom";
+  const rangeStart = period === "custom" ? appliedFrom : dataYearStart;
+  const rangeEnd = period === "custom" ? appliedTo : effectiveToday;
+  const { data: dailySales } = trpc.dashboard.dailySalesTrend.useQuery({ days: 30 }, { enabled: !useRangeQuery });
+  const { data: rangeSales } = trpc.dashboard.trendByRange.useQuery({ startDate: rangeStart, endDate: rangeEnd }, { enabled: useRangeQuery });
+  const activeSalesData = useRangeQuery ? rangeSales : dailySales;
+
+  function applyCustomRange() {
+    if (customFrom && customTo && customFrom <= customTo) {
+      setAppliedFrom(customFrom);
+      setAppliedTo(customTo);
+      setPeriod("custom");
+    }
+  }
   const { data: lowStock } = trpc.inventory.lowStock.useQuery();
   const { data: topCustomers } = trpc.customers.topByOutstanding.useQuery();
 
@@ -143,17 +166,63 @@ export default function Dashboard() {
             <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">Data: Apr 2025 – Mar 2026</span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {(["today", "week", "mtd", "ytd"] as const).map(p => (
-            <Button key={p} variant={period === p ? "default" : "outline"} size="sm" onClick={() => setPeriod(p)} className="text-xs h-8">
-              {p === "today" ? "31 Mar" : p === "week" ? "7 Days" : p === "mtd" ? "MTD" : "FY 25-26"}
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {(["today", "week", "mtd", "ytd"] as const).map(p => (
+              <Button key={p} variant={period === p ? "default" : "outline"} size="sm" onClick={() => setPeriod(p)} className="text-xs h-8">
+                {p === "today" ? "31 Mar" : p === "week" ? "7 Days" : p === "mtd" ? "MTD" : "FY 25-26"}
+              </Button>
+            ))}
+            <Button
+              variant={period === "custom" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setPeriod("custom")}
+              className="text-xs h-8 gap-1.5"
+            >
+              <CalendarRange className="w-3.5 h-3.5" />
+              Custom
             </Button>
-          ))}
+          </div>
+          {/* Custom date range inputs — shown when Custom is selected */}
+          {period === "custom" && (
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] text-muted-foreground">From</span>
+                <Input
+                  type="date"
+                  value={customFrom}
+                  min="2025-04-01"
+                  max={customTo || "2026-03-31"}
+                  onChange={e => setCustomFrom(e.target.value)}
+                  className="h-7 text-xs w-36 px-2"
+                />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] text-muted-foreground">To</span>
+                <Input
+                  type="date"
+                  value={customTo}
+                  min={customFrom || "2025-04-01"}
+                  max="2026-03-31"
+                  onChange={e => setCustomTo(e.target.value)}
+                  className="h-7 text-xs w-36 px-2"
+                />
+              </div>
+              <Button
+                size="sm"
+                onClick={applyCustomRange}
+                disabled={!customFrom || !customTo || customFrom > customTo}
+                className="h-7 text-xs px-3"
+              >
+                Apply
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="Total Sales" value={isLoading ? "—" : fmtCompact(totalSales)} sub={period === "today" ? "31 Mar 2026" : period === "week" ? "25–31 Mar 2026" : period === "ytd" ? "Apr 2025 – Mar 2026" : "Mar 2026"} icon={IndianRupee} trend="up" trendVal="+8.2%" colorClass="text-primary bg-primary/10 border-primary/20" />
+        <KpiCard title="Total Sales" value={isLoading ? "—" : fmtCompact(totalSales)} sub={period === "today" ? "31 Mar 2026" : period === "week" ? "25–31 Mar 2026" : period === "ytd" ? "Apr 2025 – Mar 2026" : period === "custom" ? `${appliedFrom} – ${appliedTo}` : "Mar 2026"} icon={IndianRupee} trend="up" trendVal="+8.2%" colorClass="text-primary bg-primary/10 border-primary/20" />
         <KpiCard title="Net Profit" value={isLoading ? "—" : fmtCompact(netProfit)} sub={`Margin: ${totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(1) : 0}%`} icon={TrendingUp} trend="up" trendVal="+3.1%" colorClass="text-green-400 bg-green-500/10 border-green-500/20" />
         <KpiCard title="Cash Balance" value={isLoading ? "—" : fmtCompact(cashBalance)} sub="Available in hand" icon={Wallet} colorClass="text-blue-400 bg-blue-500/10 border-blue-500/20" />
         <KpiCard title="Outstanding" value={isLoading ? "—" : fmtCompact(totalReceivables)} sub={`Collection: ${collectionRate}%`} icon={CreditCard} trend={totalReceivables > 500000 ? "down" : "up"} trendVal={`${collectionRate}%`} colorClass={totalReceivables > 500000 ? "text-red-400 bg-red-500/10 border-red-500/20" : "text-green-400 bg-green-500/10 border-green-500/20"} />
@@ -186,7 +255,11 @@ export default function Dashboard() {
           <CardHeader className="pb-2 pt-4 px-5">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-semibold">
-                {period === "today" ? "Sales vs Expenses — 31 Mar 2026" : period === "week" ? "Sales vs Expenses — Last 7 Days" : period === "ytd" ? "Sales vs Expenses — FY 2025-26" : "Sales vs Expenses — Mar 2026"}
+                {period === "today" ? "Sales vs Expenses — 31 Mar 2026"
+                  : period === "week" ? "Sales vs Expenses — Last 7 Days"
+                  : period === "ytd" ? "Sales vs Expenses — FY 2025-26"
+                  : period === "custom" ? `Sales vs Expenses — ${appliedFrom} to ${appliedTo}`
+                  : "Sales vs Expenses — Mar 2026"}
               </CardTitle>
               <Badge variant="outline" className="text-[10px] border-border/50">Trend</Badge>
             </div>

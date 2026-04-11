@@ -113,3 +113,10 @@
 - [x] KPI sub-labels updated: "31 Mar 2026" / "25–31 Mar 2026" / "Mar 2026" / "Apr 2025 – Mar 2026"
 - [x] Chart title is dynamic and matches selected period
 - [x] Fallback chart uses data period dates, not system clock
+
+## Dashboard Custom Date Range Picker
+- [x] Added "Custom" button alongside Today/7 Days/MTD/FY 25-26
+- [x] When "Custom" is active, From/To date inputs appear (min: 2025-04-01, max: 2026-03-31)
+- [x] Apply button triggers KPI and chart data refresh for the custom range
+- [x] Chart title updates to show the selected custom range dates
+- [x] KPI sub-label updates to show the custom range (e.g. "2025-06-01 – 2025-08-31")
