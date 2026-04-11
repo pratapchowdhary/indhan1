@@ -81,3 +81,27 @@
 - [x] Fix: Added defensive try/catch + regex validation in Dashboard.tsx chartData useMemo
 - [x] Fix: Updated Reports.tsx chartData to use reportDate field with normalization
 - [x] All 11 tests still passing after fix
+
+## Performance & Security Audit
+- [ ] Security: Verify all tRPC procedures use protectedProcedure (no unguarded endpoints)
+- [ ] Security: Validate all user inputs with Zod schemas (type, range, length limits)
+- [ ] Security: Check for SQL injection risks in raw sql`` template literals
+- [ ] Security: Ensure no sensitive data (DB credentials, JWT secret) exposed to frontend
+- [ ] Security: Check rate limiting on auth and mutation endpoints
+- [ ] Security: Verify CORS and cookie security settings
+- [ ] Security: Check for XSS risks in Sathi AI output rendering
+- [ ] Performance: Audit DB query efficiency — N+1 queries, missing indexes
+- [ ] Performance: Check bundle size and code splitting
+- [ ] Performance: Verify API response times for dashboard KPI queries
+- [ ] Performance: Add DB indexes for frequently queried date columns
+- [ ] Performance: Check for unnecessary re-renders in React components
+
+## Date Filter Button Audit & Fixes
+- [x] Dashboard: Today/7 Days/MTD buttons now filter both KPI data AND chart data to the selected period
+- [x] Expenses: Added Mar 2026 / Feb 2026 / Jan 2026 / Q1 2026 / Custom preset buttons — all filter list and chart
+- [x] Bank Statement: Added Mar 2026 / Feb 2026 / Jan 2026 / Q1 2026 / Custom preset buttons — all filter transactions
+- [x] P&L Reports: Fixed revenue to use date-range query (was always showing last 30 days); added preset buttons; chart now responds to date selection
+- [x] Reconciliation: Date picker confirmed working correctly
+- [ ] Sales & Nozzles: Page is a placeholder — not yet built
+- [ ] WeighBridge: To be verified in next session
+- [x] All pages: Filter state is local per page (no cross-page persistence needed)

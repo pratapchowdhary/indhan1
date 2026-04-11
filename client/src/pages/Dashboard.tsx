@@ -81,28 +81,36 @@ export default function Dashboard() {
 
   const chartData = useMemo(() => {
     if (dailySales && dailySales.length > 0) {
-      return [...dailySales].reverse().map((d: any) => {
-        // Safely parse date — TiDB may return full ISO timestamps or plain YYYY-MM-DD strings
-        let dateLabel = '';
-        try {
+      return [...dailySales]
+        .reverse()
+        .filter((d: any) => {
+          // Filter chart data to match the selected period
           const raw = d.reportDate ? String(d.reportDate).slice(0, 10) : null;
-          if (raw && /^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-            dateLabel = format(new Date(raw + 'T00:00:00'), 'dd MMM');
-          }
-        } catch { dateLabel = ''; }
-        return {
-          date: dateLabel,
-          Sales: Number(d.totalSalesValue ?? 0),
-          Expenses: Number(d.totalExpenses ?? 0),
-        };
-      }).filter((d: any) => d.date !== '');
+          if (!raw) return false;
+          return raw >= startDate && raw <= effectiveToday;
+        })
+        .map((d: any) => {
+          let dateLabel = '';
+          try {
+            const raw = String(d.reportDate).slice(0, 10);
+            if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+              dateLabel = format(new Date(raw + 'T00:00:00'), 'dd MMM');
+            }
+          } catch { dateLabel = ''; }
+          return {
+            date: dateLabel,
+            Sales: Number(d.totalSalesValue ?? 0),
+            Expenses: Number(d.totalExpenses ?? 0),
+          };
+        })
+        .filter((d: any) => d.date !== '');
     }
     return Array.from({ length: 14 }, (_, i) => ({
       date: format(subDays(new Date(), 13 - i), 'dd MMM'),
       Sales: 0,
       Expenses: 0,
     }));
-  }, [dailySales]);
+  }, [dailySales, startDate, effectiveToday]);
 
   const salesBreakdown = [
     { name: "Petrol", value: 58, color: "oklch(0.78 0.15 65)" },

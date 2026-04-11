@@ -19,9 +19,11 @@ import {
 import { invokeLLM } from "./_core/llm";
 
 // ─── Shared date range input ──────────────────────────────────────────────────
+// Enforce YYYY-MM-DD format to prevent SQL injection via date parameters
+const safeDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD format');
 const dateRangeInput = z.object({
-  startDate: z.string(),
-  endDate: z.string(),
+  startDate: safeDate,
+  endDate: safeDate,
 });
 
 // ─── Dashboard Router ─────────────────────────────────────────────────────────
@@ -29,10 +31,10 @@ const dashboardRouter = router({
   kpis: protectedProcedure.input(dateRangeInput).query(async ({ input }) => {
     return getDashboardKPIs(input.startDate, input.endDate);
   }),
-  trend: protectedProcedure.input(z.object({ days: z.number().default(30) })).query(async ({ input }) => {
+  trend: protectedProcedure.input(z.object({ days: z.number().min(1).max(365).default(30) })).query(async ({ input }) => {
     return getDailyTrend(input.days);
   }),
-  dailySalesTrend: protectedProcedure.input(z.object({ days: z.number().default(30) })).query(async ({ input }) => {
+  dailySalesTrend: protectedProcedure.input(z.object({ days: z.number().min(1).max(365).default(30) })).query(async ({ input }) => {
     return getDailyTrend(input.days);
   }),
 });
@@ -71,12 +73,12 @@ const customersRouter = router({
     return { success: true };
   }),
   recordPayment: protectedProcedure.input(z.object({
-    customerId: z.number(),
-    paymentDate: z.string(),
-    amount: z.number(),
+    customerId: z.number().int().positive(),
+    paymentDate: safeDate,
+    amount: z.number().positive().max(10_000_000),
     paymentMethod: z.enum(["cash", "bank", "online"]),
-    referenceNo: z.string().optional(),
-    notes: z.string().optional(),
+    referenceNo: z.string().max(100).optional(),
+    notes: z.string().max(500).optional(),
   })).mutation(async ({ input }) => {
     await recordCustomerPayment({ ...input, amount: String(input.amount) });
     return { success: true };
@@ -168,14 +170,14 @@ const expensesRouter = router({
     return getExpenseSummaryByCategory(input.startDate, input.endDate);
   }),
   create: protectedProcedure.input(z.object({
-    expenseDate: z.string(),
+    expenseDate: safeDate,
     headAccount: z.enum(["Operating Activities", "Financing Activities", "Investing Activities", "Acquisition", "Establishment", "REPO"]),
     subHeadAccount: z.enum(["Wages", "Admin", "Electricity", "Hospitality", "Maintenance", "Performance Bonus", "Fuel", "Transport", "POS Charges", "Bank Charges", "Purchase", "Interest", "Principal", "Charges"]),
-    description: z.string().min(1),
-    amount: z.number().positive(),
+    description: z.string().min(1).max(500),
+    amount: z.number().positive().max(10_000_000),
     transactionStatus: z.enum(["Paid", "Payable", "DuePayable", "DuePaid"]).default("Paid"),
     modeOfPayment: z.enum(["Bank", "Cash", "Fuel", "Online"]).default("Bank"),
-    paidBy: z.string().optional(),
+    paidBy: z.string().max(100).optional(),
   })).mutation(async ({ input }) => {
     await createExpense({ ...input, amount: String(input.amount) });
     return { success: true };
@@ -199,13 +201,13 @@ const bankRouter = router({
     return getBankSummary(input.startDate, input.endDate);
   }),
   create: protectedProcedure.input(z.object({
-    transactionDate: z.string(),
-    description: z.string().min(1),
+    transactionDate: safeDate,
+    description: z.string().min(1).max(500),
     transactionType: z.enum(["NEFT", "RTGS", "IMPS", "Cash", "Credit Card", "UPI"]),
-    withdrawal: z.number().default(0),
-    deposit: z.number().default(0),
+    withdrawal: z.number().min(0).max(100_000_000).default(0),
+    deposit: z.number().min(0).max(100_000_000).default(0),
     balance: z.number().optional(),
-    referenceNo: z.string().optional(),
+    referenceNo: z.string().max(100).optional(),
   })).mutation(async ({ input }) => {
     await createBankTransaction({
       ...input,
@@ -337,7 +339,7 @@ const salesRouter = router({
 
 // ─── Sathi AI Router ─────────────────────────────────────────────────────────
 const sathiRouter = router({
-  ask: protectedProcedure.input(z.object({ question: z.string() })).mutation(async ({ input }) => {
+  ask: protectedProcedure.input(z.object({ question: z.string().min(1).max(1000) })).mutation(async ({ input }) => {
     const today = new Date().toISOString().slice(0, 10);
     const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
     const kpis = await getDashboardKPIs(monthStart, today).catch(() => null);

@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Receipt, Plus, CheckCircle, Clock, XCircle, BarChart3 } from "lucide-react";
+import { Receipt, Plus, CheckCircle, Clock, XCircle, BarChart3, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
@@ -26,24 +26,32 @@ const categoryColors: Record<string, string> = {
   "Performance Bonus": "text-green-400 bg-green-500/10 border-green-500/20",
 };
 
+// Period presets relative to latest data
+const PRESETS = [
+  { label: "Mar 2026", start: "2026-03-01", end: "2026-03-31" },
+  { label: "Feb 2026", start: "2026-02-01", end: "2026-02-28" },
+  { label: "Jan 2026", start: "2026-01-01", end: "2026-01-31" },
+  { label: "Q1 2026",  start: "2026-01-01", end: "2026-03-31" },
+  { label: "Custom",   start: "",           end: "" },
+];
+
 export default function Expenses() {
   const [addOpen, setAddOpen] = useState(false);
+  const [activePreset, setActivePreset] = useState(0);
+  const [startDate, setStartDate] = useState("2026-03-01");
+  const [endDate, setEndDate] = useState("2026-03-31");
+
   const [form, setForm] = useState({
     expenseDate: format(new Date(), "yyyy-MM-dd"),
     category: "Wages",
     description: "",
     amount: "",
-    paymentMethod: "cash",
+    paymentMethod: "Cash",
     paidTo: "",
-    billNo: "",
   });
 
-  // Default to latest data month (March 2026) since current month has no data yet
-  const today = "2026-03-31";
-  const monthStart = "2026-03-01";
-
-  const { data: expenses, refetch } = trpc.expenses.list.useQuery({ startDate: monthStart, endDate: today });
-  const { data: summary } = trpc.expenses.summary.useQuery({ startDate: monthStart, endDate: today });
+  const { data: expenses, refetch } = trpc.expenses.list.useQuery({ startDate, endDate });
+  const { data: summary } = trpc.expenses.summary.useQuery({ startDate, endDate });
 
   const createExpense = trpc.expenses.create.useMutation({
     onSuccess: () => { toast.success("Expense recorded"); setAddOpen(false); refetch(); },
@@ -51,21 +59,30 @@ export default function Expenses() {
   });
 
   const approveExpense = trpc.expenses.approve.useMutation({
-    onSuccess: () => { toast.success("Expense approved"); refetch(); },
+    onSuccess: () => { toast.success("Status updated"); refetch(); },
     onError: (e) => toast.error(e.message),
   });
+
+  function applyPreset(idx: number) {
+    setActivePreset(idx);
+    if (idx < PRESETS.length - 1) {
+      setStartDate(PRESETS[idx].start);
+      setEndDate(PRESETS[idx].end);
+    }
+  }
 
   const totalExpenses = expenses?.reduce((s: number, e: any) => s + Number(e.amount ?? 0), 0) ?? 0;
   const pendingCount = expenses?.filter((e: any) => e.approvalStatus === "pending").length ?? 0;
 
   const chartData = summary?.map((s: any) => ({
-    category: s.category?.split(" ")[0] ?? s.category,
-    amount: Number(s.totalAmount ?? 0),
+    category: (s.subHeadAccount ?? s.category ?? "").split(" ")[0],
+    amount: Number(s.total ?? s.totalAmount ?? 0),
   })) ?? [];
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Expenses</h2>
           <p className="text-sm text-muted-foreground mt-0.5">Category-wise expense tracking with approval workflow</p>
@@ -103,20 +120,16 @@ export default function Expenses() {
                   <Label>Paid To</Label>
                   <Input placeholder="Vendor / Person" className="bg-secondary border-border/50" value={form.paidTo} onChange={e => setForm(f => ({ ...f, paidTo: e.target.value }))} />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 col-span-2">
                   <Label>Payment Method</Label>
-                  <Select defaultValue="cash" onValueChange={v => setForm(f => ({ ...f, paymentMethod: v }))}>
+                  <Select defaultValue="Cash" onValueChange={v => setForm(f => ({ ...f, paymentMethod: v }))}>
                     <SelectTrigger className="bg-secondary border-border/50"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="cash">Cash</SelectItem>
-                      <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                      <SelectItem value="upi">UPI</SelectItem>
+                      <SelectItem value="Cash">Cash</SelectItem>
+                      <SelectItem value="Bank">Bank Transfer</SelectItem>
+                      <SelectItem value="Online">Online / UPI</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Bill / Reference No.</Label>
-                  <Input placeholder="Optional" className="bg-secondary border-border/50" value={form.billNo} onChange={e => setForm(f => ({ ...f, billNo: e.target.value }))} />
                 </div>
               </div>
               <Button className="w-full" onClick={() => {
@@ -127,7 +140,7 @@ export default function Expenses() {
                   subHeadAccount: form.category as any,
                   description: form.description,
                   amount: parseFloat(form.amount),
-                  modeOfPayment: form.paymentMethod === "cash" ? "Cash" : form.paymentMethod === "upi" ? "Online" : "Bank",
+                  modeOfPayment: form.paymentMethod as any,
                   paidBy: form.paidTo || undefined,
                 });
               }} disabled={createExpense.isPending}>
@@ -138,6 +151,31 @@ export default function Expenses() {
         </Dialog>
       </div>
 
+      {/* Period Filter Buttons */}
+      <div className="flex flex-wrap items-center gap-2">
+        {PRESETS.slice(0, -1).map((p, i) => (
+          <Button key={p.label} variant={activePreset === i ? "default" : "outline"} size="sm" className="text-xs h-8" onClick={() => applyPreset(i)}>
+            {p.label}
+          </Button>
+        ))}
+        <Button variant={activePreset === PRESETS.length - 1 ? "default" : "outline"} size="sm" className="text-xs h-8 gap-1" onClick={() => setActivePreset(PRESETS.length - 1)}>
+          <Calendar className="w-3 h-3" /> Custom
+        </Button>
+        {activePreset === PRESETS.length - 1 && (
+          <>
+            <div className="flex items-center gap-1.5">
+              <Label className="text-xs text-muted-foreground">From</Label>
+              <Input type="date" className="bg-secondary border-border/50 h-8 text-xs w-36" value={startDate} onChange={e => setStartDate(e.target.value)} />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Label className="text-xs text-muted-foreground">To</Label>
+              <Input type="date" className="bg-secondary border-border/50 h-8 text-xs w-36" value={endDate} onChange={e => setEndDate(e.target.value)} />
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="bg-card border-border/50">
           <CardContent className="p-5">
@@ -145,7 +183,7 @@ export default function Expenses() {
               <Receipt className="w-4 h-4 text-primary" />
             </div>
             <p className="text-2xl font-bold tabular-nums">{fmt(totalExpenses)}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Total This Month</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Total — {PRESETS[activePreset]?.label ?? "Selected Period"}</p>
           </CardContent>
         </Card>
         <Card className="bg-card border-border/50">
@@ -168,10 +206,11 @@ export default function Expenses() {
         </Card>
       </div>
 
+      {/* Chart */}
       {chartData.length > 0 && (
         <Card className="bg-card border-border/50">
           <CardHeader className="pb-2 pt-4 px-5">
-            <CardTitle className="text-sm font-semibold">Expense by Category (This Month)</CardTitle>
+            <CardTitle className="text-sm font-semibold">Expense by Category</CardTitle>
           </CardHeader>
           <CardContent className="px-2 pb-4">
             <ResponsiveContainer width="100%" height={180}>
@@ -187,32 +226,33 @@ export default function Expenses() {
         </Card>
       )}
 
+      {/* Expense List */}
       <Card className="bg-card border-border/50">
         <CardHeader className="pb-3 pt-4 px-5">
-          <CardTitle className="text-sm font-semibold">Recent Expenses</CardTitle>
+          <CardTitle className="text-sm font-semibold">Expense Records ({expenses?.length ?? 0})</CardTitle>
         </CardHeader>
         <CardContent className="px-5 pb-4">
           {expenses && expenses.length > 0 ? (
             <div className="space-y-2">
-              {expenses.slice(0, 20).map((e: any) => (
+              {expenses.slice(0, 50).map((e: any) => (
                 <div key={e.id} className="flex items-center justify-between py-2.5 border-b border-border/30 last:border-0">
                   <div className="flex items-center gap-3">
-                    <Badge className={`text-[10px] ${categoryColors[e.category] ?? "text-muted-foreground bg-secondary"}`}>
-                      {e.category}
+                    <Badge className={`text-[10px] shrink-0 ${categoryColors[e.subHeadAccount] ?? "text-muted-foreground bg-secondary"}`}>
+                      {e.subHeadAccount ?? e.category}
                     </Badge>
                     <div>
                       <p className="text-sm font-medium">{e.description}</p>
-                      <p className="text-xs text-muted-foreground">{e.expenseDate}{e.paidTo ? ` · ${e.paidTo}` : ""}</p>
+                      <p className="text-[11px] text-muted-foreground">{e.expenseDate} · {e.modeOfPayment ?? e.paymentMethod}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <p className="text-sm font-semibold tabular-nums">{fmt(Number(e.amount ?? 0))}</p>
+                    <span className="text-sm font-semibold tabular-nums text-red-400">-{fmt(Number(e.amount))}</span>
                     {e.approvalStatus === "approved" ? (
-                      <CheckCircle className="w-4 h-4 text-green-400" />
+                      <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
                     ) : e.approvalStatus === "rejected" ? (
-                      <XCircle className="w-4 h-4 text-red-400" />
+                      <XCircle className="w-4 h-4 text-red-400 shrink-0" />
                     ) : (
-                      <Button size="sm" variant="outline" className="h-6 text-[10px] border-green-500/30 text-green-400 hover:bg-green-500/10" onClick={() => approveExpense.mutate({ id: e.id, status: "approved", approvedBy: "Owner" })}>
+                      <Button variant="outline" size="sm" className="text-xs h-7 px-2" onClick={() => approveExpense.mutate({ id: e.id, status: "approved", approvedBy: "Kranthi" })}>
                         Approve
                       </Button>
                     )}
@@ -221,10 +261,7 @@ export default function Expenses() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-10">
-              <Receipt className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">No expenses recorded this month</p>
-            </div>
+            <p className="text-sm text-muted-foreground text-center py-8">No expenses found for this period.</p>
           )}
         </CardContent>
       </Card>
