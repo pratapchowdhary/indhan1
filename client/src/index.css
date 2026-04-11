@@ -42,9 +42,45 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* ─── Light Mode (default) ─────────────────────────────────────────────────── */
 :root {
   --radius: 0.625rem;
-  /* Indhan Dark Theme — Amber/Gold on Deep Navy */
+  --background: oklch(0.98 0.003 240);
+  --foreground: oklch(0.15 0.012 240);
+  --card: oklch(1.00 0.000 0);
+  --card-foreground: oklch(0.15 0.012 240);
+  --popover: oklch(1.00 0.000 0);
+  --popover-foreground: oklch(0.15 0.012 240);
+  --primary: oklch(0.65 0.16 55);
+  --primary-foreground: oklch(1.00 0.000 0);
+  --secondary: oklch(0.94 0.006 240);
+  --secondary-foreground: oklch(0.25 0.012 240);
+  --muted: oklch(0.94 0.006 240);
+  --muted-foreground: oklch(0.50 0.012 240);
+  --accent: oklch(0.65 0.16 55);
+  --accent-foreground: oklch(1.00 0.000 0);
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: oklch(1.00 0.000 0);
+  --border: oklch(0.88 0.008 240);
+  --input: oklch(0.92 0.006 240);
+  --ring: oklch(0.65 0.16 55);
+  --chart-1: oklch(0.65 0.16 55);
+  --chart-2: oklch(0.55 0.15 220);
+  --chart-3: oklch(0.55 0.18 145);
+  --chart-4: oklch(0.60 0.18 300);
+  --chart-5: oklch(0.55 0.22 25);
+  --sidebar: oklch(0.96 0.004 240);
+  --sidebar-foreground: oklch(0.15 0.012 240);
+  --sidebar-primary: oklch(0.65 0.16 55);
+  --sidebar-primary-foreground: oklch(1.00 0.000 0);
+  --sidebar-accent: oklch(0.90 0.008 240);
+  --sidebar-accent-foreground: oklch(0.15 0.012 240);
+  --sidebar-border: oklch(0.88 0.008 240);
+  --sidebar-ring: oklch(0.65 0.16 55);
+}
+
+/* ─── Dark Mode ─────────────────────────────────────────────────────────────── */
+.dark {
   --background: oklch(0.13 0.012 240);
   --foreground: oklch(0.95 0.005 240);
   --card: oklch(0.17 0.014 240);
@@ -79,8 +115,6 @@
   --sidebar-ring: oklch(0.78 0.15 65);
 }
 
-/* Indhan uses a single dark theme — no .dark variant needed */
-
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -99,10 +133,16 @@
     font-weight: 700;
     letter-spacing: -0.02em;
   }
+  /* Dark mode scrollbar */
+  .dark ::-webkit-scrollbar { width: 5px; height: 5px; }
+  .dark ::-webkit-scrollbar-track { background: oklch(0.17 0.014 240); }
+  .dark ::-webkit-scrollbar-thumb { background: oklch(0.30 0.016 240); border-radius: 3px; }
+  .dark ::-webkit-scrollbar-thumb:hover { background: oklch(0.78 0.15 65); }
+  /* Light mode scrollbar */
   ::-webkit-scrollbar { width: 5px; height: 5px; }
-  ::-webkit-scrollbar-track { background: oklch(0.17 0.014 240); }
-  ::-webkit-scrollbar-thumb { background: oklch(0.30 0.016 240); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: oklch(0.78 0.15 65); }
+  ::-webkit-scrollbar-track { background: oklch(0.94 0.006 240); }
+  ::-webkit-scrollbar-thumb { background: oklch(0.80 0.008 240); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: oklch(0.65 0.16 55); }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
   [type="button"]:not(:disabled),
@@ -117,24 +157,11 @@
 }
 
 @layer components {
-  /**
-   * Custom container utility that centers content and adds responsive padding.
-   *
-   * This overrides Tailwind's default container behavior to:
-   * - Auto-center content (mx-auto)
-   * - Add responsive horizontal padding
-   * - Set max-width for large screens
-   *
-   * Usage: <div className="container">...</div>
-   *
-   * For custom widths, use max-w-* utilities directly:
-   * <div className="max-w-6xl mx-auto px-4">...</div>
-   */
   .container {
     width: 100%;
     margin-left: auto;
     margin-right: auto;
-    padding-left: 1rem; /* 16px - mobile padding */
+    padding-left: 1rem;
     padding-right: 1rem;
   }
 
@@ -145,16 +172,16 @@
 
   @media (min-width: 640px) {
     .container {
-      padding-left: 1.5rem; /* 24px - tablet padding */
+      padding-left: 1.5rem;
       padding-right: 1.5rem;
     }
   }
 
   @media (min-width: 1024px) {
     .container {
-      padding-left: 2rem; /* 32px - desktop padding */
+      padding-left: 2rem;
       padding-right: 2rem;
-      max-width: 1280px; /* Standard content width */
+      max-width: 1280px;
     }
   }
 }

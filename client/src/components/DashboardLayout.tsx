@@ -25,7 +25,7 @@ import { useIsMobile } from "@/hooks/useMobile";
 import {
   LayoutDashboard, RefreshCw, Users, Package, Receipt,
   Landmark, TrendingUp, FileUp, Settings, LogOut,
-  PanelLeft, Fuel, UserCheck, ChevronRight, Bell,
+  PanelLeft, Fuel, UserCheck, ChevronRight, Bell, Sun, Moon,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -33,6 +33,7 @@ import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import SathiAgent from "./SathiAgent";
+import { useTheme } from "../contexts/ThemeContext";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/", group: "Operations" },
@@ -53,6 +54,23 @@ const SIDEBAR_WIDTH_KEY = "indhan-sidebar-width";
 const DEFAULT_WIDTH = 252;
 const MIN_WIDTH = 200;
 const MAX_WIDTH = 320;
+
+function ThemeToggleButton() {
+  const { theme, toggleTheme } = useTheme();
+  return (
+    <button
+      onClick={toggleTheme}
+      className="h-8 w-8 rounded-lg hover:bg-secondary/60 flex items-center justify-center transition-colors"
+      title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+    >
+      {theme === 'dark' ? (
+        <Sun className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" />
+      ) : (
+        <Moon className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" />
+      )}
+    </button>
+  );
+}
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarWidth, setSidebarWidth] = useState(() => {
@@ -248,6 +266,7 @@ function DashboardLayoutContent({ children, setSidebarWidth }: { children: React
               <div className="w-1.5 h-1.5 rounded-full bg-green-400 mr-1.5 animate-pulse" />
               Live
             </Badge>
+            <ThemeToggleButton />
             <button className="h-8 w-8 rounded-lg hover:bg-secondary/60 flex items-center justify-center relative">
               <Bell className="h-4 w-4 text-muted-foreground" />
               <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-primary rounded-full" />

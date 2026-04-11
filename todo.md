@@ -53,3 +53,8 @@
 - [ ] Mobile app (React Native)
 - [ ] WhatsApp notifications (optional channel)
 - [ ] Voice commands (Sathi voice mode)
+
+## UI Enhancements
+- [x] Dark/light mode toggle in header with localStorage persistence
+- [x] Light mode CSS variables (clean white/grey palette)
+- [x] Dark mode CSS variables (amber/gold premium dark)
