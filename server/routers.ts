@@ -4,7 +4,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import {
-  getDashboardKPIs, getDailyTrend,
+  getDashboardKPIs, getDailyTrend, getDailyTrendByRange,
   getAllCustomers, getCustomerById, createCustomer, updateCustomer, getCustomerReceivables, recordCustomerPayment,
   getAllProducts, createProduct, updateProductStock, updateProduct, getLowStockProducts,
   getPurchaseOrders, createPurchaseOrder, updatePurchaseOrderStatus,
@@ -36,6 +36,9 @@ const dashboardRouter = router({
   }),
   dailySalesTrend: protectedProcedure.input(z.object({ days: z.number().min(1).max(365).default(30) })).query(async ({ input }) => {
     return getDailyTrend(input.days);
+  }),
+  trendByRange: protectedProcedure.input(dateRangeInput).query(async ({ input }) => {
+    return getDailyTrendByRange(input.startDate, input.endDate);
   }),
 });
 

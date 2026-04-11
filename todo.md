@@ -105,3 +105,11 @@
 - [ ] Sales & Nozzles: Page is a placeholder — not yet built
 - [ ] WeighBridge: To be verified in next session
 - [x] All pages: Filter state is local per page (no cross-page persistence needed)
+
+## Dashboard Date Display Fix
+- [x] Dashboard header now shows "Sunday, 31 March 2026" (latest data date) instead of system date
+- [x] Added amber badge "Data: Apr 2025 – Mar 2026" to make data currency visible
+- [x] Period buttons updated: "31 Mar" / "7 Days" / "MTD" / "FY 25-26" — all reference data period
+- [x] KPI sub-labels updated: "31 Mar 2026" / "25–31 Mar 2026" / "Mar 2026" / "Apr 2025 – Mar 2026"
+- [x] Chart title is dynamic and matches selected period
+- [x] Fallback chart uses data period dates, not system clock

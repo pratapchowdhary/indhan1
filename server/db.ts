@@ -102,6 +102,25 @@ export async function getDailyTrend(days: number) {
   }));
 }
 
+// Date-range based trend (for FY views)
+export async function getDailyTrendByRange(startDate: string, endDate: string) {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select({
+    reportDate: dailyReports.reportDate,
+    totalSalesValue: dailyReports.totalSalesValue,
+    netProfit: dailyReports.netProfit,
+    totalExpenses: dailyReports.totalExpenses,
+    cashBalance: dailyReports.cashBalance,
+  }).from(dailyReports).where(
+    sql`${dailyReports.reportDate} >= ${startDate} AND ${dailyReports.reportDate} <= ${endDate}`
+  ).orderBy(dailyReports.reportDate);
+  return rows.map(r => ({
+    ...r,
+    reportDate: r.reportDate ? String(r.reportDate).slice(0, 10) : null,
+  }));
+}
+
 // ─── Customers ────────────────────────────────────────────────────────────────
 export async function getAllCustomers() {
   const db = await getDb();

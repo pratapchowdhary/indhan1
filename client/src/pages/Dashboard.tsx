@@ -67,21 +67,29 @@ function CustomTooltip({ active, payload, label }: any) {
 }
 
 export default function Dashboard() {
-  // Use the latest data date (2026-03-31) as reference when current month has no data
+  // Data period: Apr 2025 – Mar 2026 (uploaded historical data)
+  // The latest date with data is 31 Mar 2026; system date (Apr 2026) has no data
   const latestDataDate = "2026-03-31";
   const latestDataMonthStart = "2026-03-01";
-  const today = format(new Date(), "yyyy-MM-dd");
-  const effectiveToday = today > latestDataDate ? latestDataDate : today;
-  const [period, setPeriod] = useState<"today" | "week" | "mtd">("mtd");
-  const startDate = period === "today" ? latestDataDate : period === "week" ? format(subDays(new Date(latestDataDate), 6), "yyyy-MM-dd") : latestDataMonthStart;
-  const { data: kpis, isLoading } = trpc.dashboard.kpis.useQuery({ startDate, endDate: effectiveToday });;
-  const { data: dailySales } = trpc.dashboard.dailySalesTrend.useQuery({ days: 30 });
+  const dataYearStart = "2025-04-01"; // Full financial year start
+  const effectiveToday = latestDataDate; // Always use latest data date, not system clock
+  const [period, setPeriod] = useState<"today" | "week" | "mtd" | "ytd">("mtd");
+  const startDate =
+    period === "today" ? latestDataDate
+    : period === "week" ? format(subDays(new Date(latestDataDate), 6), "yyyy-MM-dd")
+    : period === "ytd" ? dataYearStart
+    : latestDataMonthStart;
+  const { data: kpis, isLoading } = trpc.dashboard.kpis.useQuery({ startDate, endDate: effectiveToday });
+  // For FY view use date-range query (365 days), for other periods use last 30 days
+  const { data: dailySales } = trpc.dashboard.dailySalesTrend.useQuery({ days: 30 }, { enabled: period !== "ytd" });
+  const { data: fySales } = trpc.dashboard.trendByRange.useQuery({ startDate: dataYearStart, endDate: effectiveToday }, { enabled: period === "ytd" });
+  const activeSalesData = period === "ytd" ? fySales : dailySales;
   const { data: lowStock } = trpc.inventory.lowStock.useQuery();
   const { data: topCustomers } = trpc.customers.topByOutstanding.useQuery();
 
   const chartData = useMemo(() => {
-    if (dailySales && dailySales.length > 0) {
-      return [...dailySales]
+    if (activeSalesData && activeSalesData.length > 0) {
+      return [...activeSalesData]
         .reverse()
         .filter((d: any) => {
           // Filter chart data to match the selected period
@@ -106,11 +114,11 @@ export default function Dashboard() {
         .filter((d: any) => d.date !== '');
     }
     return Array.from({ length: 14 }, (_, i) => ({
-      date: format(subDays(new Date(), 13 - i), 'dd MMM'),
+      date: format(subDays(new Date(latestDataDate + 'T00:00:00'), 13 - i), 'dd MMM'),
       Sales: 0,
       Expenses: 0,
     }));
-  }, [dailySales, startDate, effectiveToday]);
+  }, [activeSalesData, startDate, effectiveToday]);
 
   const salesBreakdown = [
     { name: "Petrol", value: 58, color: "oklch(0.78 0.15 65)" },
@@ -130,19 +138,22 @@ export default function Dashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Good morning, Kranthi</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">{format(new Date(), "EEEE, d MMMM yyyy")} · BEES Fuel Station</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-sm text-muted-foreground">{format(new Date(latestDataDate + 'T00:00:00'), "EEEE, d MMMM yyyy")} · BEES Fuel Station</p>
+            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">Data: Apr 2025 – Mar 2026</span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
-          {(["today", "week", "mtd"] as const).map(p => (
+          {(["today", "week", "mtd", "ytd"] as const).map(p => (
             <Button key={p} variant={period === p ? "default" : "outline"} size="sm" onClick={() => setPeriod(p)} className="text-xs h-8">
-              {p === "today" ? "Today" : p === "week" ? "7 Days" : "MTD"}
+              {p === "today" ? "31 Mar" : p === "week" ? "7 Days" : p === "mtd" ? "MTD" : "FY 25-26"}
             </Button>
           ))}
         </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="Total Sales" value={isLoading ? "—" : fmtCompact(totalSales)} sub={period === "today" ? "Today" : period === "week" ? "Last 7 days" : "Month to date"} icon={IndianRupee} trend="up" trendVal="+8.2%" colorClass="text-primary bg-primary/10 border-primary/20" />
+        <KpiCard title="Total Sales" value={isLoading ? "—" : fmtCompact(totalSales)} sub={period === "today" ? "31 Mar 2026" : period === "week" ? "25–31 Mar 2026" : period === "ytd" ? "Apr 2025 – Mar 2026" : "Mar 2026"} icon={IndianRupee} trend="up" trendVal="+8.2%" colorClass="text-primary bg-primary/10 border-primary/20" />
         <KpiCard title="Net Profit" value={isLoading ? "—" : fmtCompact(netProfit)} sub={`Margin: ${totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(1) : 0}%`} icon={TrendingUp} trend="up" trendVal="+3.1%" colorClass="text-green-400 bg-green-500/10 border-green-500/20" />
         <KpiCard title="Cash Balance" value={isLoading ? "—" : fmtCompact(cashBalance)} sub="Available in hand" icon={Wallet} colorClass="text-blue-400 bg-blue-500/10 border-blue-500/20" />
         <KpiCard title="Outstanding" value={isLoading ? "—" : fmtCompact(totalReceivables)} sub={`Collection: ${collectionRate}%`} icon={CreditCard} trend={totalReceivables > 500000 ? "down" : "up"} trendVal={`${collectionRate}%`} colorClass={totalReceivables > 500000 ? "text-red-400 bg-red-500/10 border-red-500/20" : "text-green-400 bg-green-500/10 border-green-500/20"} />
@@ -174,7 +185,9 @@ export default function Dashboard() {
         <Card className="lg:col-span-2 bg-card border-border/50">
           <CardHeader className="pb-2 pt-4 px-5">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-semibold">Sales vs Expenses (14 Days)</CardTitle>
+              <CardTitle className="text-sm font-semibold">
+                {period === "today" ? "Sales vs Expenses — 31 Mar 2026" : period === "week" ? "Sales vs Expenses — Last 7 Days" : period === "ytd" ? "Sales vs Expenses — FY 2025-26" : "Sales vs Expenses — Mar 2026"}
+              </CardTitle>
               <Badge variant="outline" className="text-[10px] border-border/50">Trend</Badge>
             </div>
           </CardHeader>
