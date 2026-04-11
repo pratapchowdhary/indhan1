@@ -74,3 +74,10 @@
 - [x] Reconciliation: default date changed to March 31, 2026 (was April 12 — showed empty)
 - [x] Customers & Inventory: confirmed no date filter issue (load all records, no date range)
 - [x] All 11 tests passing after fixes
+
+## Critical Bug Fix — RangeError: Invalid time value (Production Crash)
+- [x] Root cause identified: TiDB Cloud returns varchar date columns as full ISO timestamps (e.g. "2026-03-31T04:00:00.000Z") not plain "YYYY-MM-DD" strings
+- [x] Fix: Added .slice(0, 10) normalization in db.ts for all date fields returned from DB (getDailyTrend, getExpenses, getBankTransactions, getDailyReports, getDailyReport, getSalesTransactions)
+- [x] Fix: Added defensive try/catch + regex validation in Dashboard.tsx chartData useMemo
+- [x] Fix: Updated Reports.tsx chartData to use reportDate field with normalization
+- [x] All 11 tests still passing after fix

@@ -88,13 +88,18 @@ export async function getDashboardKPIs(startDate: string, endDate: string) {
 export async function getDailyTrend(days: number) {
   const db = await getDb();
   if (!db) return [];
-  return db.select({
+  const rows = await db.select({
     reportDate: dailyReports.reportDate,
     totalSalesValue: dailyReports.totalSalesValue,
     netProfit: dailyReports.netProfit,
     totalExpenses: dailyReports.totalExpenses,
     cashBalance: dailyReports.cashBalance,
   }).from(dailyReports).orderBy(desc(dailyReports.reportDate)).limit(days);
+  // Normalize reportDate: TiDB may return full ISO timestamps for varchar date fields
+  return rows.map(r => ({
+    ...r,
+    reportDate: r.reportDate ? String(r.reportDate).slice(0, 10) : null,
+  }));
 }
 
 // ─── Customers ────────────────────────────────────────────────────────────────
@@ -218,9 +223,10 @@ export async function updatePurchaseOrderStatus(id: number, status: string, quan
 export async function getExpenses(startDate: string, endDate: string) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(expenses).where(
+  const rows = await db.select().from(expenses).where(
     sql`${expenses.expenseDate} >= ${startDate} AND ${expenses.expenseDate} <= ${endDate}`
   ).orderBy(desc(expenses.expenseDate));
+  return rows.map(r => ({ ...r, expenseDate: r.expenseDate ? String(r.expenseDate).slice(0, 10) : null }));
 }
 
 export async function createExpense(data: InsertExpense) {
@@ -251,9 +257,10 @@ export async function getExpenseSummaryByCategory(startDate: string, endDate: st
 export async function getBankTransactions(startDate: string, endDate: string) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(bankTransactions).where(
+  const rows = await db.select().from(bankTransactions).where(
     sql`${bankTransactions.transactionDate} >= ${startDate} AND ${bankTransactions.transactionDate} <= ${endDate}`
   ).orderBy(desc(bankTransactions.transactionDate));
+  return rows.map(r => ({ ...r, transactionDate: r.transactionDate ? String(r.transactionDate).slice(0, 10) : null }));
 }
 
 export async function createBankTransaction(data: InsertBankTransaction) {
@@ -317,16 +324,19 @@ export async function getWeighBridgeSummary(startDate: string, endDate: string) 
 export async function getDailyReports(startDate: string, endDate: string) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(dailyReports).where(
+  const rows = await db.select().from(dailyReports).where(
     sql`${dailyReports.reportDate} >= ${startDate} AND ${dailyReports.reportDate} <= ${endDate}`
   ).orderBy(desc(dailyReports.reportDate));
+  return rows.map(r => ({ ...r, reportDate: r.reportDate ? String(r.reportDate).slice(0, 10) : null }));
 }
 
 export async function getDailyReport(reportDate: string) {
   const db = await getDb();
   if (!db) return null;
   const result = await db.select().from(dailyReports).where(sql`${dailyReports.reportDate} = ${reportDate}`).limit(1);
-  return result[0] ?? null;
+  const r = result[0] ?? null;
+  if (!r) return null;
+  return { ...r, reportDate: r.reportDate ? String(r.reportDate).slice(0, 10) : null };
 }
 
 export async function upsertDailyReport(data: InsertDailyReport) {
@@ -376,7 +386,8 @@ export async function getSalesTransactions(startDate: string, endDate: string, c
   const condition = customerId
     ? and(baseCondition, eq(salesTransactions.customerId, customerId))
     : baseCondition;
-  return db.select().from(salesTransactions).where(condition).orderBy(desc(salesTransactions.transactionDate)).limit(200);
+  const rows = await db.select().from(salesTransactions).where(condition).orderBy(desc(salesTransactions.transactionDate)).limit(200);
+  return rows.map(r => ({ ...r, transactionDate: r.transactionDate ? String(r.transactionDate).slice(0, 10) : null }));
 }
 
 export async function createSalesTransaction(data: InsertSalesTransaction) {

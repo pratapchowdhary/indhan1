@@ -24,7 +24,7 @@ export default function Reports() {
   const profitMargin = totalRevenue > 0 ? ((grossProfit / totalRevenue) * 100).toFixed(1) : "0";
 
   const chartData = trend?.map((d: any) => ({
-    date: d.date ?? "",
+    date: d.reportDate ? String(d.reportDate).slice(0, 10) : (d.date ?? ""),
     revenue: Number(d.totalSalesValue ?? d.totalSales ?? 0),
   })) ?? [];
 
