@@ -447,3 +447,88 @@ export const maintenanceNotifications = mysqlTable("maintenance_notifications", 
 
 export type MaintenanceNotification = typeof maintenanceNotifications.$inferSelect;
 export type InsertMaintenanceNotification = typeof maintenanceNotifications.$inferInsert;
+
+// ─── Employee Auth (PIN-based) ────────────────────────────────────────────────
+export const employeeAuth = mysqlTable("employee_auth", {
+  id: int("id").autoincrement().primaryKey(),
+  employeeId: int("employeeId").notNull().unique(),
+  pinHash: varchar("pinHash", { length: 255 }).notNull(),  // bcrypt hash of 6-digit PIN
+  faceEnrolled: boolean("faceEnrolled").default(false),
+  faceDescriptor: text("faceDescriptor"),  // JSON array of 128-float face embedding
+  faceEnrolledAt: timestamp("faceEnrolledAt"),
+  lastLoginAt: timestamp("lastLoginAt"),
+  failedAttempts: int("failedAttempts").default(0),
+  lockedUntil: timestamp("lockedUntil"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type EmployeeAuth = typeof employeeAuth.$inferSelect;
+export type InsertEmployeeAuth = typeof employeeAuth.$inferInsert;
+
+// ─── Attendance Check-in Slots (randomised hourly) ────────────────────────────
+// One slot per hour per employee per day, with a random minute offset
+export const checkinSlots = mysqlTable("checkin_slots", {
+  id: int("id").autoincrement().primaryKey(),
+  employeeId: int("employeeId").notNull(),
+  slotDate: varchar("slotDate", { length: 10 }).notNull(),   // YYYY-MM-DD
+  slotHour: int("slotHour").notNull(),                        // 6–21 (6AM–9PM)
+  scheduledAt: timestamp("scheduledAt").notNull(),            // exact randomised time
+  windowEndsAt: timestamp("windowEndsAt").notNull(),          // scheduledAt + 15 min
+  status: mysqlEnum("status", ["pending", "verified", "missed", "excused"]).default("pending"),
+  verifiedAt: timestamp("verifiedAt"),
+  latitude: decimal("latitude", { precision: 10, scale: 7 }),
+  longitude: decimal("longitude", { precision: 10, scale: 7 }),
+  distanceMetres: decimal("distanceMetres", { precision: 8, scale: 2 }),
+  faceMatchScore: decimal("faceMatchScore", { precision: 5, scale: 4 }),  // 0.0–1.0
+  verificationMethod: mysqlEnum("verificationMethod", ["face_geo", "face_only", "manual"]),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type CheckinSlot = typeof checkinSlots.$inferSelect;
+export type InsertCheckinSlot = typeof checkinSlots.$inferInsert;
+
+// ─── Attendance Score (daily summary) ────────────────────────────────────────
+export const attendanceScore = mysqlTable("attendance_score", {
+  id: int("id").autoincrement().primaryKey(),
+  employeeId: int("employeeId").notNull(),
+  scoreDate: varchar("scoreDate", { length: 10 }).notNull(),  // YYYY-MM-DD
+  totalSlots: int("totalSlots").default(0),
+  verifiedSlots: int("verifiedSlots").default(0),
+  missedSlots: int("missedSlots").default(0),
+  excusedSlots: int("excusedSlots").default(0),
+  scorePercent: decimal("scorePercent", { precision: 5, scale: 2 }).default("0.00"),
+  dayStatus: mysqlEnum("dayStatus", ["present", "absent", "partial", "off_day"]).default("present"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AttendanceScore = typeof attendanceScore.$inferSelect;
+export type InsertAttendanceScore = typeof attendanceScore.$inferInsert;
+
+// ─── Payroll Requests (employee self-service) ─────────────────────────────────
+export const payrollRequests = mysqlTable("payroll_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  employeeId: int("employeeId").notNull(),
+  requestType: mysqlEnum("requestType", ["weekly", "monthly"]).notNull(),
+  periodStart: varchar("periodStart", { length: 10 }).notNull(),  // YYYY-MM-DD
+  periodEnd: varchar("periodEnd", { length: 10 }).notNull(),
+  attendanceScore: decimal("attendanceScore", { precision: 5, scale: 2 }),  // % at time of request
+  eligibleDays: decimal("eligibleDays", { precision: 4, scale: 1 }),
+  grossAmount: decimal("grossAmount", { precision: 10, scale: 2 }),
+  deductions: decimal("deductions", { precision: 10, scale: 2 }).default("0.00"),
+  netAmount: decimal("netAmount", { precision: 10, scale: 2 }),
+  status: mysqlEnum("status", ["pending", "approved", "rejected", "paid"]).default("pending"),
+  requestedAt: timestamp("requestedAt").defaultNow().notNull(),
+  reviewedBy: varchar("reviewedBy", { length: 100 }),
+  reviewedAt: timestamp("reviewedAt"),
+  reviewNotes: text("reviewNotes"),
+  paidAt: timestamp("paidAt"),
+  paymentMode: mysqlEnum("paymentMode", ["bank", "cash"]),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PayrollRequest = typeof payrollRequests.$inferSelect;
+export type InsertPayrollRequest = typeof payrollRequests.$inferInsert;

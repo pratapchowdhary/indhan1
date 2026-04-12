@@ -19,6 +19,8 @@ import NotFound from "./pages/NotFound";
 import About from "./pages/About";
 import Payroll from "./pages/Payroll";
 import Assets from "./pages/Assets";
+import BiometricAttendance from "./pages/BiometricAttendance";
+import StaffPortal from "./pages/StaffPortal";
 
 function Router() {
   return (
@@ -37,6 +39,8 @@ function Router() {
         <Route path="/settings" component={SettingsPage} />
         <Route path="/about" component={About} />
         <Route path="/payroll" component={Payroll} />
+        <Route path="/attendance" component={BiometricAttendance} />
+        <Route path="/staff" component={StaffPortal} />
         <Route path="/assets" component={Assets} />
         <Route component={NotFound} />
       </Switch>
