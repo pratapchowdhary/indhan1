@@ -1,4 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { STATION_SHORT_NAME, STATION_ADDRESS } from "@shared/const";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -190,9 +191,8 @@ function DashboardLayoutContent({ children, setSidebarWidth }: { children: React
           <SidebarContent className="px-2 py-3 gap-0">
             {!isCollapsed && (
               <div className="mx-2 mb-4 px-3 py-2.5 rounded-lg bg-primary/8 border border-primary/15">
-                <p className="text-xs font-bold text-primary truncate">BEES Fuel Station</p>
-                <p className="text-[10px] text-muted-foreground leading-tight mt-0.5 truncate">NH-44, Kothur, Hyderabad</p>
-                <p className="text-[10px] text-muted-foreground leading-tight truncate">Telangana — 509228</p>
+                <p className="text-xs font-bold text-primary truncate">{STATION_SHORT_NAME}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight mt-0.5 truncate">{STATION_ADDRESS}</p>
               </div>
             )}
             {groups.map(group => {
@@ -277,7 +277,7 @@ function DashboardLayoutContent({ children, setSidebarWidth }: { children: React
             {isMobile && <SidebarTrigger className="h-8 w-8 rounded-lg hover:bg-secondary/60" />}
             <div>
               <h1 className="text-base font-semibold text-foreground">{activeItem?.label ?? "Indhan"}</h1>
-              <p className="text-xs text-muted-foreground">BEES Fuel Station</p>
+              <p className="text-xs text-muted-foreground">{STATION_SHORT_NAME}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">

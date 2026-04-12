@@ -311,3 +311,8 @@
 - [x] UI: confirmed screen shows cost change summary + updated margin
 - [x] UI: scan history sidebar with status badges, confidence bars, PO links
 - [x] 248 tests passing (no regressions)
+
+## Dynamic Station Name & Address
+- [x] Dashboard header subtitle: now uses STATION_SHORT_NAME from shared/const.ts
+- [x] DashboardLayout station card: now uses STATION_SHORT_NAME + STATION_ADDRESS from shared/const.ts
+- [x] About page is the source of truth — all three locations share the same constants

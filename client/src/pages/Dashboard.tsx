@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { CalendarRange } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { fmtCompact, fmtFull } from "@/lib/format";
+import { STATION_SHORT_NAME } from "@shared/const";
 import { StatCard } from "@/components/StatCard";
 
 const EXPENSE_COLORS = [
@@ -165,7 +166,7 @@ export default function Dashboard() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Good morning, Kranthi</h2>
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-sm text-muted-foreground">{format(new Date(latestDataDate + 'T00:00:00'), "EEEE, d MMMM yyyy")} · BEES Fuel Station</p>
+            <p className="text-sm text-muted-foreground">{format(new Date(latestDataDate + 'T00:00:00'), "EEEE, d MMMM yyyy")} · {STATION_SHORT_NAME}</p>
             <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">Data: Apr 2025 – Mar 2026</span>
           </div>
         </div>
