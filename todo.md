@@ -645,3 +645,8 @@
 - [x] Frontend: DipCell edit mode has two inputs — Stick and Litres
 - [x] Frontend: Dip Variance = Closing Stock − Manual Dip Reading (litres)
 - [ ] ACTION REQUIRED: Re-upload BEES Excel file via Data Import to backfill all historical dip readings
+
+## Dip Reading — Consolidation to Daily Stock Register
+- [x] Inventory: Removed Dip Readings & Variance section (cards, history table, dip state, getDipReadings query)
+- [x] Inventory: Removed unused imports (TrendingDown, TrendingUp, Minus, Save, Pencil, History, fmtL)
+- [x] Daily Stock Register: Confirmed as the single authoritative place for dip entry and variance
