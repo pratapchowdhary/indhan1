@@ -24,6 +24,7 @@ import {
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
 import { useInventoryNotifications } from "@/hooks/useInventoryNotifications";
+import { toast } from "sonner";
 import {
   LayoutDashboard, RefreshCw, Users, Package, Receipt,
   Landmark, TrendingUp, FileUp, Settings, LogOut,
@@ -81,9 +82,33 @@ function NotificationBell() {
   );
 
   const handleClick = async () => {
-    if (perm === "granted") return;
+    if (perm === "granted") {
+      // Already granted — show a reminder toast
+      toast.success("Notifications already enabled", {
+        description: "You'll be alerted when stock drops below minimum levels.",
+        duration: 3000,
+      });
+      return;
+    }
     await requestPermission();
-    if (typeof Notification !== "undefined") setPerm(Notification.permission);
+    const newPerm = typeof Notification !== "undefined" ? Notification.permission : "default";
+    setPerm(newPerm);
+    if (newPerm === "granted") {
+      toast.success("Push notifications enabled", {
+        description: "You'll receive alerts when products drop below reorder levels.",
+        duration: 4000,
+      });
+    } else if (newPerm === "denied") {
+      toast.error("Notifications blocked", {
+        description: "Allow notifications in your browser settings to receive low-stock alerts.",
+        duration: 5000,
+      });
+    } else {
+      toast("Notification permission dismissed", {
+        description: "Tap the bell again to enable low-stock alerts.",
+        duration: 3000,
+      });
+    }
   };
 
   return (

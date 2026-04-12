@@ -1,5 +1,6 @@
 import { trpc } from "@/lib/trpc";
-import { useState } from "react";
+import { useState, useCallback, useRef } from "react";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -124,6 +125,7 @@ export default function Inventory() {
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [scannerOpen, setScannerOpen] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const handleScan = (code: string) => {
     setScannerOpen(false);
@@ -134,6 +136,17 @@ export default function Inventory() {
   const { data: products, refetch } = trpc.inventory.list.useQuery();
   const { data: lowStock } = trpc.inventory.lowStock.useQuery();
   const { data: purchaseOrders } = trpc.inventory.purchaseOrders.useQuery();
+
+  const handleRefresh = useCallback(async () => {
+    await refetch();
+    toast.success("Inventory refreshed", { duration: 2000 });
+  }, [refetch]);
+
+  const { pulling, refreshing, pullDistance } = usePullToRefresh({
+    onRefresh: handleRefresh,
+    threshold: 72,
+    containerRef: scrollRef,
+  });
 
   const addProduct = trpc.inventory.addProduct.useMutation({
     onSuccess: () => { toast.success("Product added"); setAddOpen(false); refetch(); },
@@ -152,7 +165,24 @@ export default function Inventory() {
   const others = filteredProducts.filter((p: any) => p.category === "other");
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5" ref={scrollRef}>
+      {/* Pull-to-refresh indicator */}
+      {(pulling || refreshing) && (
+        <div
+          className="flex items-center justify-center gap-2 overflow-hidden transition-all"
+          style={{ height: pullDistance > 0 ? `${pullDistance}px` : refreshing ? "48px" : "0px" }}
+        >
+          <div
+            className={`w-7 h-7 rounded-full border-2 border-primary border-t-transparent flex items-center justify-center ${
+              refreshing ? "animate-spin" : ""
+            }`}
+            style={!refreshing ? { transform: `rotate(${(pullDistance / 72) * 360}deg)` } : {}}
+          />
+          <span className="text-xs text-primary font-medium">
+            {refreshing ? "Refreshing…" : pullDistance >= 72 ? "Release to refresh" : "Pull to refresh"}
+          </span>
+        </div>
+      )}
       {/* Barcode Scanner Modal */}
       {scannerOpen && <BarcodeScanner onScan={handleScan} onClose={() => setScannerOpen(false)} />}
       {/* Header */}

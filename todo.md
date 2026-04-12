@@ -519,3 +519,8 @@
 - [x] Barcode/QR scanner: camera-based scanner in Inventory page (BarcodeScanner.tsx using html5-qrcode)
 - [x] Barcode/QR scanner: scan product barcode → sets search query to scanned code, shows matching products
 - [x] Barcode/QR scanner: fallback error state with retry button if camera not available
+
+## PWA UX Enhancements Sprint 3
+- [x] Toast confirmation when push notifications are enabled ("Notifications enabled") or denied/disabled
+- [x] Pull-to-refresh gesture on Inventory page (touch swipe down to refetch product list)
+- [x] Flashlight toggle button in BarcodeScanner for low-light scanning

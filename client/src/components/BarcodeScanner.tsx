@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
-import { X, Camera, ScanLine } from "lucide-react";
+import { X, Camera, ScanLine, Flashlight, ZapOff, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface BarcodeScannerProps {
@@ -13,11 +13,30 @@ const SCANNER_ID = "indhan-qr-scanner";
 export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
   const [error, setError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
+  const [torchSupported, setTorchSupported] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const mountedRef = useRef(true);
+
+  // Toggle torch via the MediaStream track's applyConstraints
+  const toggleTorch = useCallback(async () => {
+    if (!streamRef.current) return;
+    const track = streamRef.current.getVideoTracks()[0];
+    if (!track) return;
+    try {
+      const newState = !torchOn;
+      await track.applyConstraints({ advanced: [{ torch: newState } as MediaTrackConstraintSet] });
+      setTorchOn(newState);
+    } catch {
+      // torch not supported on this device — hide the button
+      setTorchSupported(false);
+    }
+  }, [torchOn]);
 
   const startScanner = useCallback(async () => {
     setError(null);
+    setTorchOn(false);
     try {
       const scanner = new Html5Qrcode(SCANNER_ID, {
         formatsToSupport: [
@@ -38,7 +57,6 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
         { fps: 10, qrbox: { width: 250, height: 150 } },
         (decodedText) => {
           if (!mountedRef.current) return;
-          // Stop scanner and call callback
           scanner.stop().catch(() => {});
           onScan(decodedText);
         },
@@ -46,7 +64,22 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
           // scan failure — ignore, keep scanning
         }
       );
-      if (mountedRef.current) setScanning(true);
+
+      if (mountedRef.current) {
+        setScanning(true);
+        // Grab the live MediaStream to check torch support
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment" },
+          });
+          streamRef.current = stream;
+          const track = stream.getVideoTracks()[0];
+          const caps = track.getCapabilities() as MediaTrackCapabilities & { torch?: boolean };
+          if (caps.torch) setTorchSupported(true);
+        } catch {
+          // stream grab failed — torch unavailable
+        }
+      }
     } catch (err: unknown) {
       if (!mountedRef.current) return;
       const msg = err instanceof Error ? err.message : String(err);
@@ -70,6 +103,11 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
         try { scannerRef.current.clear(); } catch (_) {}
         scannerRef.current = null;
       }
+      // Stop the secondary stream used for torch
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
+      }
     };
   }, [startScanner]);
 
@@ -85,12 +123,32 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
             <ScanLine className="h-4 w-4 text-primary" />
             <span className="text-sm font-semibold text-foreground">Scan Barcode / QR Code</span>
           </div>
-          <button
-            onClick={onClose}
-            className="h-7 w-7 rounded-lg hover:bg-secondary/60 flex items-center justify-center"
-          >
-            <X className="h-4 w-4 text-muted-foreground" />
-          </button>
+          <div className="flex items-center gap-1">
+            {/* Flashlight toggle — only shown when torch is supported */}
+            {torchSupported && scanning && (
+              <button
+                onClick={toggleTorch}
+                title={torchOn ? "Turn off flashlight" : "Turn on flashlight"}
+                className={`h-7 w-7 rounded-lg flex items-center justify-center transition-colors ${
+                  torchOn
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-secondary/60 text-muted-foreground"
+                }`}
+              >
+                {torchOn ? (
+                  <Zap className="h-4 w-4" />
+                ) : (
+                  <ZapOff className="h-4 w-4" />
+                )}
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="h-7 w-7 rounded-lg hover:bg-secondary/60 flex items-center justify-center"
+            >
+              <X className="h-4 w-4 text-muted-foreground" />
+            </button>
+          </div>
         </div>
 
         {/* Scanner viewport */}
@@ -142,11 +200,25 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
           )}
         </div>
 
-        {/* Footer hint */}
-        <div className="px-4 py-3 text-center">
-          <p className="text-xs text-muted-foreground">
+        {/* Footer */}
+        <div className="px-4 py-3 flex items-center justify-between gap-2">
+          <p className="text-xs text-muted-foreground flex-1">
             Point camera at a product barcode or QR code to look it up in inventory
           </p>
+          {/* Inline flashlight button for devices that support it */}
+          {torchSupported && scanning && (
+            <button
+              onClick={toggleTorch}
+              className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                torchOn
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {torchOn ? <Zap className="h-3 w-3" /> : <ZapOff className="h-3 w-3" />}
+              {torchOn ? "Light On" : "Light Off"}
+            </button>
+          )}
         </div>
       </div>
     </div>
