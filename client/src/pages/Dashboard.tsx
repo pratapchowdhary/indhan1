@@ -604,7 +604,7 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="px-5 pb-4 space-y-2">
-            {topCustomers && topCustomers.length > 0 ? topCustomers.slice(0, 4).map((c: any, i: number) => (
+            {topCustomers && topCustomers.length > 0 ? [...topCustomers].sort((a: any, b: any) => Number(b.outstanding ?? b.outstandingBalance ?? 0) - Number(a.outstanding ?? a.outstandingBalance ?? 0)).filter((c: any) => Number(c.outstanding ?? c.outstandingBalance ?? 0) > 0).slice(0, 5).map((c: any, i: number) => (
               <div key={c.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
                 <div className="flex items-center gap-3">
                   <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-xs font-bold text-primary">{i + 1}</div>
@@ -614,7 +614,7 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-semibold tabular-nums text-red-400">{fmt(Number(c.outstandingBalance ?? 0))}</p>
+                  <p className="text-sm font-semibold tabular-nums text-red-400">{fmt(Number(c.outstanding ?? c.outstandingBalance ?? 0))}</p>
                   <p className="text-[10px] text-muted-foreground">Outstanding</p>
                 </div>
               </div>

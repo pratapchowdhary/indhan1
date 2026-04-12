@@ -437,3 +437,6 @@
 
 ## Settings Page Bug
 - [x] Fix Settings page stuck on "Module loading..." — rebuilt as full Settings page with station info, fuel config, nozzle config, system preferences, and access control
+
+## Top Outstanding Customers Bug
+- [x] Fix Top Outstanding Customers widget — now sorts by outstanding desc, uses correct 'outstanding' field, filters out ₹0 balances, shows top 5
