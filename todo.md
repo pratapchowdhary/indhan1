@@ -187,3 +187,30 @@
 
 ## Remaining Visual Overhaul Items
 - [ ] Bank Statement: complete visuals-first redesign (transaction type icons, running balance trend chart, colour-coded debit/credit)
+
+## Phase 2 — Attendance & Payroll Module — COMPLETE
+- [x] DB schema: employees, attendance, payroll_runs, payslips tables created
+- [x] Payroll engine: auto PF (12% employee + 3.67% employer EPF + 8.33% EPS capped ₹1,250)
+- [x] Payroll engine: auto ESI (0.75% employee + 3.25% employer, only if gross ≤ ₹21,000)
+- [x] Payroll engine: auto Professional Tax — Telangana slabs (₹0/₹150/₹200)
+- [x] Backend: payroll run — computes all payslips for a given month from attendance data
+- [x] Backend: employee CRUD (create, list, update, deactivate)
+- [x] Backend: attendance upsert with positional and object API
+- [x] Frontend: Payroll page — Employee master, Attendance grid, Payroll Run, Payslip view
+- [x] Navigation: Payroll added to sidebar under Operations group
+
+## Phase 2 — Asset & Equipment Tracking Module — COMPLETE
+- [x] DB schema: assets, maintenance_schedules, maintenance_logs, maintenance_evidence tables created
+- [x] Backend: preloaded 20 standard gas station assets (dispensers, tanks, generator, compressor, weighbridge, fire extinguishers, CCTV, vehicles, tools)
+- [x] Backend: asset CRUD with health score tracking
+- [x] Backend: maintenance schedule CRUD with auto next_due date computation
+- [x] Backend: maintenance log with evidence file upload to S3
+- [x] Backend: upcoming (7/30 days) and overdue maintenance queries
+- [x] Frontend: Assets page — Health Dashboard, Asset Register, Maintenance Schedules, Maintenance Logs, Evidence Gallery, Alerts
+- [x] Navigation: Assets added to sidebar under Operations group
+
+## Phase 2 — Maintenance Notifications — COMPLETE
+- [x] In-app notification generation for upcoming maintenance (due in 7 days)
+- [x] In-app notification generation for overdue maintenance (past due date)
+- [x] Owner notification via notifyOwner for critical overdue assets
+- [x] Alerts tab in Assets page showing all active notifications with dismiss/mark-read actions

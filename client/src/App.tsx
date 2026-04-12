@@ -17,6 +17,8 @@ import ImportData from "./pages/ImportData";
 import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 import About from "./pages/About";
+import Payroll from "./pages/Payroll";
+import Assets from "./pages/Assets";
 
 function Router() {
   return (
@@ -34,6 +36,8 @@ function Router() {
         <Route path="/import" component={ImportData} />
         <Route path="/settings" component={SettingsPage} />
         <Route path="/about" component={About} />
+        <Route path="/payroll" component={Payroll} />
+        <Route path="/assets" component={Assets} />
         <Route component={NotFound} />
       </Switch>
     </DashboardLayout>

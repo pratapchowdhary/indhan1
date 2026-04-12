@@ -232,3 +232,218 @@ export const customerPayments = mysqlTable("customer_payments", {
 
 export type CustomerPayment = typeof customerPayments.$inferSelect;
 export type InsertCustomerPayment = typeof customerPayments.$inferInsert;
+
+// ─── Employees ────────────────────────────────────────────────────────────────
+export const employees = mysqlTable("employees", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  role: varchar("role", { length: 100 }).notNull().default("Staff"),
+  department: mysqlEnum("department", ["Operations", "Finance", "Management", "Security", "Maintenance"]).default("Operations"),
+  joinDate: varchar("joinDate", { length: 10 }).notNull(),
+  exitDate: varchar("exitDate", { length: 10 }),
+  // Salary structure
+  basicSalary: decimal("basicSalary", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  hra: decimal("hra", { precision: 10, scale: 2 }).default("0.00"),
+  otherAllowances: decimal("otherAllowances", { precision: 10, scale: 2 }).default("0.00"),
+  // Statutory compliance
+  pfApplicable: boolean("pfApplicable").default(true),
+  esiApplicable: boolean("esiApplicable").default(true),
+  ptApplicable: boolean("ptApplicable").default(true),
+  // Working days config
+  monthlyWorkingDays: int("monthlyWorkingDays").default(26),
+  // Status
+  isActive: boolean("isActive").default(true),
+  phone: varchar("phone", { length: 20 }),
+  bankAccount: varchar("bankAccount", { length: 50 }),
+  ifscCode: varchar("ifscCode", { length: 20 }),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Employee = typeof employees.$inferSelect;
+export type InsertEmployee = typeof employees.$inferInsert;
+
+// ─── Attendance ───────────────────────────────────────────────────────────────
+export const attendance = mysqlTable("attendance", {
+  id: int("id").autoincrement().primaryKey(),
+  employeeId: int("employeeId").notNull(),
+  attendanceDate: varchar("attendanceDate", { length: 10 }).notNull(),
+  status: mysqlEnum("status", ["present", "absent", "half_day", "leave", "holiday"]).notNull().default("present"),
+  checkIn: varchar("checkIn", { length: 8 }),   // HH:MM:SS
+  checkOut: varchar("checkOut", { length: 8 }),
+  overtimeHours: decimal("overtimeHours", { precision: 4, scale: 2 }).default("0.00"),
+  notes: text("notes"),
+  markedBy: varchar("markedBy", { length: 100 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Attendance = typeof attendance.$inferSelect;
+export type InsertAttendance = typeof attendance.$inferInsert;
+
+// ─── Payroll Runs ─────────────────────────────────────────────────────────────
+export const payrollRuns = mysqlTable("payroll_runs", {
+  id: int("id").autoincrement().primaryKey(),
+  month: int("month").notNull(),   // 1–12
+  year: int("year").notNull(),
+  status: mysqlEnum("status", ["draft", "processed", "approved", "paid"]).default("draft"),
+  totalGross: decimal("totalGross", { precision: 15, scale: 2 }).default("0.00"),
+  totalPfEmployee: decimal("totalPfEmployee", { precision: 15, scale: 2 }).default("0.00"),
+  totalPfEmployer: decimal("totalPfEmployer", { precision: 15, scale: 2 }).default("0.00"),
+  totalEsiEmployee: decimal("totalEsiEmployee", { precision: 15, scale: 2 }).default("0.00"),
+  totalEsiEmployer: decimal("totalEsiEmployer", { precision: 15, scale: 2 }).default("0.00"),
+  totalPt: decimal("totalPt", { precision: 15, scale: 2 }).default("0.00"),
+  totalNetPay: decimal("totalNetPay", { precision: 15, scale: 2 }).default("0.00"),
+  processedAt: timestamp("processedAt"),
+  approvedBy: varchar("approvedBy", { length: 100 }),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PayrollRun = typeof payrollRuns.$inferSelect;
+export type InsertPayrollRun = typeof payrollRuns.$inferInsert;
+
+// ─── Payslips ─────────────────────────────────────────────────────────────────
+export const payslips = mysqlTable("payslips", {
+  id: int("id").autoincrement().primaryKey(),
+  runId: int("runId").notNull(),
+  employeeId: int("employeeId").notNull(),
+  month: int("month").notNull(),
+  year: int("year").notNull(),
+  // Attendance
+  workingDays: int("workingDays").notNull().default(26),
+  daysPresent: decimal("daysPresent", { precision: 4, scale: 1 }).notNull().default("0.0"),
+  // Earnings
+  basicSalary: decimal("basicSalary", { precision: 10, scale: 2 }).notNull(),
+  hra: decimal("hra", { precision: 10, scale: 2 }).default("0.00"),
+  otherAllowances: decimal("otherAllowances", { precision: 10, scale: 2 }).default("0.00"),
+  grossEarned: decimal("grossEarned", { precision: 10, scale: 2 }).notNull(),
+  // Deductions
+  pfEmployee: decimal("pfEmployee", { precision: 10, scale: 2 }).default("0.00"),
+  esiEmployee: decimal("esiEmployee", { precision: 10, scale: 2 }).default("0.00"),
+  professionalTax: decimal("professionalTax", { precision: 10, scale: 2 }).default("0.00"),
+  otherDeductions: decimal("otherDeductions", { precision: 10, scale: 2 }).default("0.00"),
+  totalDeductions: decimal("totalDeductions", { precision: 10, scale: 2 }).notNull(),
+  // Employer contributions (not deducted from employee, shown for cost tracking)
+  pfEmployer: decimal("pfEmployer", { precision: 10, scale: 2 }).default("0.00"),
+  esiEmployer: decimal("esiEmployer", { precision: 10, scale: 2 }).default("0.00"),
+  // Net
+  netPay: decimal("netPay", { precision: 10, scale: 2 }).notNull(),
+  paymentStatus: mysqlEnum("paymentStatus", ["pending", "paid"]).default("pending"),
+  paymentDate: varchar("paymentDate", { length: 10 }),
+  paymentMode: mysqlEnum("paymentMode", ["bank", "cash"]).default("bank"),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Payslip = typeof payslips.$inferSelect;
+export type InsertPayslip = typeof payslips.$inferInsert;
+
+// ─── Assets ───────────────────────────────────────────────────────────────────
+export const assets = mysqlTable("assets", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  category: mysqlEnum("category", [
+    "fuel_dispenser", "underground_tank", "generator", "compressor",
+    "weighbridge", "fire_safety", "cctv_security", "vehicle",
+    "electrical", "civil", "tools_equipment", "it_equipment", "other"
+  ]).notNull(),
+  make: varchar("make", { length: 100 }),
+  model: varchar("model", { length: 100 }),
+  serialNo: varchar("serialNo", { length: 100 }),
+  assetTag: varchar("assetTag", { length: 50 }),
+  location: varchar("location", { length: 255 }),
+  purchaseDate: varchar("purchaseDate", { length: 10 }),
+  purchaseCost: decimal("purchaseCost", { precision: 15, scale: 2 }).default("0.00"),
+  currentValue: decimal("currentValue", { precision: 15, scale: 2 }).default("0.00"),
+  warrantyExpiry: varchar("warrantyExpiry", { length: 10 }),
+  insuranceExpiry: varchar("insuranceExpiry", { length: 10 }),
+  status: mysqlEnum("status", ["operational", "under_maintenance", "faulty", "decommissioned", "standby"]).default("operational"),
+  healthScore: int("healthScore").default(100),  // 0–100
+  notes: text("notes"),
+  isPreloaded: boolean("isPreloaded").default(false),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Asset = typeof assets.$inferSelect;
+export type InsertAsset = typeof assets.$inferInsert;
+
+// ─── Maintenance Schedules ────────────────────────────────────────────────────
+export const maintenanceSchedules = mysqlTable("maintenance_schedules", {
+  id: int("id").autoincrement().primaryKey(),
+  assetId: int("assetId").notNull(),
+  maintenanceType: varchar("maintenanceType", { length: 100 }).notNull(),
+  description: text("description"),
+  frequency: mysqlEnum("frequency", ["daily", "weekly", "monthly", "quarterly", "half_yearly", "annual", "as_needed"]).notNull(),
+  lastDoneDate: varchar("lastDoneDate", { length: 10 }),
+  nextDueDate: varchar("nextDueDate", { length: 10 }),
+  estimatedCost: decimal("estimatedCost", { precision: 10, scale: 2 }).default("0.00"),
+  assignedTo: varchar("assignedTo", { length: 255 }),
+  isActive: boolean("isActive").default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type MaintenanceSchedule = typeof maintenanceSchedules.$inferSelect;
+export type InsertMaintenanceSchedule = typeof maintenanceSchedules.$inferInsert;
+
+// ─── Maintenance Logs ─────────────────────────────────────────────────────────
+export const maintenanceLogs = mysqlTable("maintenance_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  assetId: int("assetId").notNull(),
+  scheduleId: int("scheduleId"),
+  doneDate: varchar("doneDate", { length: 10 }).notNull(),
+  maintenanceType: varchar("maintenanceType", { length: 100 }).notNull(),
+  description: text("description"),
+  cost: decimal("cost", { precision: 10, scale: 2 }).default("0.00"),
+  technician: varchar("technician", { length: 255 }),
+  vendor: varchar("vendor", { length: 255 }),
+  invoiceNo: varchar("invoiceNo", { length: 100 }),
+  status: mysqlEnum("status", ["completed", "partial", "pending"]).default("completed"),
+  nextServiceDate: varchar("nextServiceDate", { length: 10 }),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type MaintenanceLog = typeof maintenanceLogs.$inferSelect;
+export type InsertMaintenanceLog = typeof maintenanceLogs.$inferInsert;
+
+// ─── Maintenance Evidence ─────────────────────────────────────────────────────
+export const maintenanceEvidence = mysqlTable("maintenance_evidence", {
+  id: int("id").autoincrement().primaryKey(),
+  logId: int("logId").notNull(),
+  assetId: int("assetId").notNull(),
+  fileName: varchar("fileName", { length: 255 }).notNull(),
+  fileType: mysqlEnum("fileType", ["image", "pdf", "document"]).notNull(),
+  fileUrl: text("fileUrl").notNull(),
+  fileKey: varchar("fileKey", { length: 500 }).notNull(),
+  fileSizeBytes: bigint("fileSizeBytes", { mode: "number" }),
+  uploadedBy: varchar("uploadedBy", { length: 100 }),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type MaintenanceEvidence = typeof maintenanceEvidence.$inferSelect;
+export type InsertMaintenanceEvidence = typeof maintenanceEvidence.$inferInsert;
+
+// ─── Maintenance Notifications ────────────────────────────────────────────────
+export const maintenanceNotifications = mysqlTable("maintenance_notifications", {
+  id: int("id").autoincrement().primaryKey(),
+  assetId: int("assetId").notNull(),
+  scheduleId: int("scheduleId"),
+  type: mysqlEnum("type", ["upcoming", "overdue", "completed", "critical"]).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  message: text("message"),
+  dueDate: varchar("dueDate", { length: 10 }),
+  isRead: boolean("isRead").default(false),
+  isDismissed: boolean("isDismissed").default(false),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type MaintenanceNotification = typeof maintenanceNotifications.$inferSelect;
+export type InsertMaintenanceNotification = typeof maintenanceNotifications.$inferInsert;

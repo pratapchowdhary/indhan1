@@ -26,6 +26,7 @@ import {
   LayoutDashboard, RefreshCw, Users, Package, Receipt,
   Landmark, TrendingUp, FileUp, Settings, LogOut,
   PanelLeft, Fuel, UserCheck, ChevronRight, Bell, Sun, Moon, Info,
+  Wrench, IndianRupee,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -45,6 +46,8 @@ const menuItems = [
   { icon: Landmark, label: "Bank Statement", path: "/bank", group: "Finance" },
   { icon: TrendingUp, label: "P&L Reports", path: "/reports", group: "Finance" },
   { icon: UserCheck, label: "Employees", path: "/employees", group: "People" },
+  { icon: IndianRupee, label: "Attendance & Payroll", path: "/payroll", group: "People" },
+  { icon: Wrench, label: "Assets & Equipment", path: "/assets", group: "People" },
   { icon: FileUp, label: "Import Data", path: "/import", group: "Setup" },
   { icon: Settings, label: "Settings", path: "/settings", group: "Setup" },
   { icon: Info, label: "About Station", path: "/about", group: "Setup" },
