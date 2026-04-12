@@ -170,30 +170,27 @@ export async function getCustomerReceivables() {
   const db = await getDb();
   if (!db) return [];
 
-  const sales = await db.select({
-    customerId: salesTransactions.customerId,
-    totalSales: sql<number>`COALESCE(SUM(totalAmount), 0)`,
-  }).from(salesTransactions).where(eq(salesTransactions.paymentMethod, 'credit')).groupBy(salesTransactions.customerId);
-
-  const payments = await db.select({
+  // Use outstandingBalance stored on the customers table (sourced from Excel Receivables-Mar).
+  // Only manual UI payments (notes = 'Payment received via UI') further reduce this balance.
+  const uiPayments = await db.select({
     customerId: customerPayments.customerId,
     totalPaid: sql<number>`COALESCE(SUM(amount), 0)`,
-  }).from(customerPayments).groupBy(customerPayments.customerId);
+  }).from(customerPayments)
+    .where(sql`notes = 'Payment received via UI'`)
+    .groupBy(customerPayments.customerId);
 
   const allCustomers = await getAllCustomers();
 
   return allCustomers.map(c => {
-    const sale = sales.find(s => s.customerId === c.id);
-    const payment = payments.find(p => p.customerId === c.id);
-    const totalSales = Number(sale?.totalSales ?? 0);
-    const totalPaid = Number(payment?.totalPaid ?? 0);
-    const outstanding = totalSales - totalPaid;
+    const uiPay = uiPayments.find(p => p.customerId === c.id);
+    const uiPaid = Number(uiPay?.totalPaid ?? 0);
+    // outstandingBalance already reflects Excel data; subtract any additional UI payments
+    const outstanding = Math.max(0, Number(c.outstandingBalance) - uiPaid);
+    const creditLimit = Number(c.creditLimit ?? 0);
     return {
       ...c,
-      totalSales,
-      totalPaid,
       outstanding,
-      collectionRate: totalSales > 0 ? (totalPaid / totalSales) * 100 : 0,
+      collectionRate: creditLimit > 0 ? Math.min(100, ((creditLimit - outstanding) / creditLimit) * 100) : 0,
     };
   });
 }
@@ -201,7 +198,13 @@ export async function getCustomerReceivables() {
 export async function recordCustomerPayment(data: InsertCustomerPayment) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  await db.insert(customerPayments).values(data);
+  // Tag UI-recorded payments so they can be distinguished from imported data
+  const paymentData = { ...data, notes: 'Payment received via UI' };
+  await db.insert(customerPayments).values(paymentData);
+  // Reduce the customer's outstanding balance directly
+  await db.execute(
+    sql`UPDATE customers SET outstandingBalance = GREATEST(0, outstandingBalance - ${data.amount}) WHERE id = ${data.customerId}`
+  );
 }
 
 // ─── Products / Inventory ─────────────────────────────────────────────────────
