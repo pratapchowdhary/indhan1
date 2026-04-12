@@ -27,7 +27,7 @@ import {
   LayoutDashboard, RefreshCw, Users, Package, Receipt,
   Landmark, TrendingUp, FileUp, Settings, LogOut,
   PanelLeft, Fuel, UserCheck, ChevronRight, Bell, Sun, Moon, Info,
-  Wrench, IndianRupee, ScanFace, Gauge, Tag, ScanLine, Banknote, ClipboardList, Upload, FlaskConical,
+  Wrench, IndianRupee, ScanFace, Gauge, Tag, ScanLine, Banknote, ClipboardList, Upload, FlaskConical, Droplets,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -38,31 +38,36 @@ import SathiAgent from "./SathiAgent";
 import { useTheme } from "../contexts/ThemeContext";
 
 const menuItems = [
+  // OPERATIONS
   { icon: LayoutDashboard, label: "Dashboard", path: "/", group: "Operations" },
-  { icon: RefreshCw, label: "Reconciliation", path: "/reconciliation", group: "Operations" },
-  { icon: Fuel, label: "Sales & Nozzles", path: "/sales", group: "Operations" },
   { icon: Gauge, label: "Nozzle Entry", path: "/nozzle-entry", group: "Operations" },
-  { icon: Tag, label: "Fuel Prices", path: "/fuel-prices", group: "Operations" },
-  { icon: ScanLine, label: "Receipt Scanner", path: "/receipt-scanner", group: "Operations" },
+  { icon: Fuel, label: "Sales & Nozzles", path: "/sales", group: "Operations" },
+  { icon: RefreshCw, label: "Reconciliation", path: "/reconciliation", group: "Operations" },
   { icon: Banknote, label: "Cash Handover", path: "/cash-handover", group: "Operations" },
   { icon: ClipboardList, label: "Daily Activity", path: "/daily-activity", group: "Operations" },
-  { icon: Package, label: "Inventory", path: "/inventory", group: "Operations" },
-  { icon: FlaskConical, label: "Daily Stock", path: "/daily-stock", group: "Operations" },
+  // FUEL MANAGEMENT
+  { icon: Tag, label: "Fuel Prices", path: "/fuel-prices", group: "Fuel" },
+  { icon: ScanLine, label: "Receipt Scanner", path: "/receipt-scanner", group: "Fuel" },
+  { icon: Package, label: "Inventory", path: "/inventory", group: "Fuel" },
+  { icon: FlaskConical, label: "Daily Stock", path: "/daily-stock", group: "Fuel" },
+  // FINANCE
   { icon: Users, label: "Customers & Credit", path: "/customers", group: "Finance" },
   { icon: Receipt, label: "Expenses", path: "/expenses", group: "Finance" },
   { icon: Landmark, label: "Bank Statement", path: "/bank", group: "Finance" },
   { icon: Upload, label: "Bank Sync", path: "/bank-statement-upload", group: "Finance" },
   { icon: TrendingUp, label: "P&L Reports", path: "/reports", group: "Finance" },
+  // PEOPLE
   { icon: UserCheck, label: "Employees", path: "/employees", group: "People" },
   { icon: IndianRupee, label: "Attendance & Payroll", path: "/payroll", group: "People" },
   { icon: ScanFace, label: "Biometric Attendance", path: "/attendance", group: "People" },
-  { icon: Wrench, label: "Assets & Equipment", path: "/assets", group: "People" },
+  // SETUP
+  { icon: Wrench, label: "Assets & Equipment", path: "/assets", group: "Setup" },
   { icon: FileUp, label: "Import Data", path: "/import", group: "Setup" },
   { icon: Settings, label: "Settings", path: "/settings", group: "Setup" },
   { icon: Info, label: "About Station", path: "/about", group: "Setup" },
 ];
 
-const groups = ["Operations", "Finance", "People", "Setup"];
+const groups = ["Operations", "Fuel", "Finance", "People", "Setup"];
 const SIDEBAR_WIDTH_KEY = "indhan-sidebar-width";
 const DEFAULT_WIDTH = 252;
 const MIN_WIDTH = 200;
@@ -205,7 +210,7 @@ function DashboardLayoutContent({ children, setSidebarWidth }: { children: React
                 <div key={group} className="mb-4">
                   {!isCollapsed && (
                     <div className="px-3 mb-1.5">
-                      <span className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-widest">{group}</span>
+                      <span className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-widest">{group === "Fuel" ? "Fuel Management" : group}</span>
                     </div>
                   )}
                   <SidebarMenu>

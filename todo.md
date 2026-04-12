@@ -467,3 +467,11 @@
 - [x] Summary strip: Petrol Sales, Diesel Sales, Implied Receipts (Petrol), Implied Receipts (Diesel) for selected period
 - [x] Period presets: Last 7/14/30 Days + custom date range picker
 - [x] Dip variance column shows "No dip" when no dip reading recorded (with amber warning banner)
+
+## Sidebar Navigation Restructure
+- [x] Consolidate Operations group: Dashboard, Nozzle Entry, Sales & Nozzles, Reconciliation, Cash Handover, Daily Activity (6 items)
+- [x] New Fuel Management group: Fuel Prices, Receipt Scanner, Inventory, Daily Stock (4 items)
+- [x] Finance group: Customers & Credit, Expenses, Bank Statement, Bank Sync, P&L Reports (5 items)
+- [x] People group: Employees, Attendance & Payroll, Biometric Attendance (3 items)
+- [x] Setup group: Assets & Equipment, Import Data, Settings, About Station (4 items)
+- [x] Updated DashboardLayout.tsx with new 5-group simplified structure
