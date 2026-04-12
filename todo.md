@@ -416,3 +416,11 @@
 ## Daily Sales Register — Status Filter & Summary Strip
 - [x] Add All / Reconciled / Pending filter buttons above the Daily Sales Register table
 - [x] Add summary strip showing total days, reconciled count, pending count, and reconciliation % at top of register
+
+## Bank Statement Upload & Auto-Reconciliation
+- [x] Add bank_statement_uploads table to schema and run migration
+- [x] Build bankStatementRouter.ts: upload (S3 + LLM parse), listUploads, getTransactions, getUnreconciledDays, markDateReconciled
+- [x] Register bankStatementRouter in main routers.ts
+- [x] Build BankStatementUpload.tsx page: drag-drop upload, parsing progress, preview table, catch-up banner, upload history
+- [x] Add Bank Sync nav item to DashboardLayout sidebar (Finance group)
+- [x] Add /bank-statement-upload route to App.tsx

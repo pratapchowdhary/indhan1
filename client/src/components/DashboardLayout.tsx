@@ -27,7 +27,7 @@ import {
   LayoutDashboard, RefreshCw, Users, Package, Receipt,
   Landmark, TrendingUp, FileUp, Settings, LogOut,
   PanelLeft, Fuel, UserCheck, ChevronRight, Bell, Sun, Moon, Info,
-  Wrench, IndianRupee, ScanFace, Gauge, Tag, ScanLine, Banknote, ClipboardList,
+  Wrench, IndianRupee, ScanFace, Gauge, Tag, ScanLine, Banknote, ClipboardList, Upload,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -50,6 +50,7 @@ const menuItems = [
   { icon: Users, label: "Customers & Credit", path: "/customers", group: "Finance" },
   { icon: Receipt, label: "Expenses", path: "/expenses", group: "Finance" },
   { icon: Landmark, label: "Bank Statement", path: "/bank", group: "Finance" },
+  { icon: Upload, label: "Bank Sync", path: "/bank-statement-upload", group: "Finance" },
   { icon: TrendingUp, label: "P&L Reports", path: "/reports", group: "Finance" },
   { icon: UserCheck, label: "Employees", path: "/employees", group: "People" },
   { icon: IndianRupee, label: "Attendance & Payroll", path: "/payroll", group: "People" },

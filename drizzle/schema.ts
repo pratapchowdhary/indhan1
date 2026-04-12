@@ -758,3 +758,25 @@ export const cashDepositVouchers = mysqlTable("cash_deposit_vouchers", {
 });
 export type CashDepositVoucher = typeof cashDepositVouchers.$inferSelect;
 export type InsertCashDepositVoucher = typeof cashDepositVouchers.$inferInsert;
+
+// ─── Bank Statement Uploads ───────────────────────────────────────────────────
+// Tracks uploaded bank statement files (PDF/Excel).
+// Each upload triggers LLM parsing → bank_transactions rows are created.
+export const bankStatementUploads = mysqlTable("bank_statement_uploads", {
+  id: int("id").autoincrement().primaryKey(),
+  filename: varchar("filename", { length: 255 }).notNull(),
+  s3Key: varchar("s3_key", { length: 500 }).notNull(),
+  s3Url: text("s3_url").notNull(),
+  fileType: varchar("file_type", { length: 20 }).notNull(),           // pdf | xlsx | csv
+  status: mysqlEnum("status", ["uploading", "parsing", "done", "error"]).default("uploading").notNull(),
+  parsedCount: int("parsed_count").default(0),                        // transactions parsed
+  matchedCount: int("matched_count").default(0),                      // matched to daily_reports
+  errorMessage: text("error_message"),
+  uploadedBy: varchar("uploaded_by", { length: 100 }),
+  statementFrom: varchar("statement_from", { length: 10 }),           // YYYY-MM-DD
+  statementTo: varchar("statement_to", { length: 10 }),               // YYYY-MM-DD
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type BankStatementUpload = typeof bankStatementUploads.$inferSelect;
+export type InsertBankStatementUpload = typeof bankStatementUploads.$inferInsert;

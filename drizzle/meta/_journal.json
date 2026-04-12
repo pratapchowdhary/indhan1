@@ -71,6 +71,13 @@
       "when": 1776001703419,
       "tag": "0009_breezy_ego",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1776017344800,
+      "tag": "0010_youthful_skullbuster",
+      "breakpoints": true
     }
   ]
 }

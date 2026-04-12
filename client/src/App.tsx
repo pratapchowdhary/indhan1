@@ -11,6 +11,7 @@ import Inventory from "./pages/Inventory";
 import Customers from "./pages/Customers";
 import Expenses from "./pages/Expenses";
 import BankStatement from "./pages/BankStatement";
+import BankStatementUpload from "./pages/BankStatementUpload";
 import Reports from "./pages/Reports";
 import Employees from "./pages/Employees";
 import ImportData from "./pages/ImportData";
@@ -38,6 +39,7 @@ function Router() {
         <Route path="/customers" component={Customers} />
         <Route path="/expenses" component={Expenses} />
         <Route path="/bank" component={BankStatement} />
+        <Route path="/bank-statement-upload" component={BankStatementUpload} />
         <Route path="/reports" component={Reports} />
         <Route path="/employees" component={Employees} />
         <Route path="/import" component={ImportData} />

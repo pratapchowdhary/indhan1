@@ -24,6 +24,7 @@ import { nozzleRouter } from "./routers/nozzleRouter";
 import { fuelIntelligenceRouter } from "./routers/fuelIntelligenceRouter";
 import { fuelPricesRouter } from "./routers/fuelPricesRouter";
 import { cashHandoverRouter } from "./routers/cashHandoverRouter";
+import { bankStatementRouter } from "./routers/bankStatementRouter";
 
 // ─── Shared date range input ──────────────────────────────────────────────────
 // Enforce YYYY-MM-DD format to prevent SQL injection via date parameters
@@ -421,6 +422,7 @@ export const appRouter = router({
   inventory: inventoryRouter,
   expenses: expensesRouter,
   bank: bankRouter,
+  bankStatement: bankStatementRouter,
   weighBridge: weighBridgeRouter,
   reconciliation: reconciliationRouter,
   pl: plRouter,
