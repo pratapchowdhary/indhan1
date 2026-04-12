@@ -658,3 +658,11 @@
 - [x] DipCell inline entry confirmed working: click amber cell, enter Stick + Litres, press Enter or save icon
 - [x] DipCell saves via fuelIntelligence.saveDipReading mutation and invalidates dailyStockStatement query
 - [x] TypeScript: 0 errors confirmed
+
+## Daily Stock Register — Dip Backfill (Completed Apr 13)
+- [x] Extracted 365 dates × 2 fuel types = 730 dip readings from BEES Excel (Daily Stock Statement sheet)
+- [x] Inserted all 730 rows into dip_readings table (date range: 2025-04-01 to 2026-03-31)
+- [x] Verified: 730 rows confirmed in database with correct dip_litres and dip_stick_reading values
+- [x] Sample verified: 31-Mar-2026 Petrol = 7059.77 L (stick 76.0), Diesel = 8853.77 L (stick 90.0)
+- [x] Backend dipVariance formula: reportedClosing − dipLitres (Closing Stock − Manual Dip Reading)
+- [x] Frontend DipCell preview formula: reportedClosing − parseFloat(litresVal) ✓
