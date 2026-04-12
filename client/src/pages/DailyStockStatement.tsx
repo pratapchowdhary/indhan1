@@ -6,10 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import {
   Droplets, TrendingDown, TrendingUp, AlertTriangle,
   CheckCircle, Info, FlaskConical, Save, Pencil, Upload, Loader2, Plus,
+  PackageCheck, ArrowRight,
 } from "lucide-react";
 
 const fmtL = (n: number | null | undefined) =>
@@ -153,6 +155,232 @@ function DipCell({
       )}
       <Pencil className="w-2.5 h-2.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
     </div>
+  );
+}
+
+/** Dialog for entering today's closing stock (both fuels at once).
+ *  Opening = yesterday's closing (auto-fetched from server).
+ *  Receipts = delivered POs for the date (auto-fetched).
+ *  Sales = Opening + Receipts − Closing (calculated by server).
+ */
+function AddClosingStockDialog({
+  open,
+  onOpenChange,
+  onSaved,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onSaved: () => void;
+}) {
+  const today = new Date().toISOString().slice(0, 10);
+  const [date, setDate] = useState(today);
+  const [petrolClosing, setPetrolClosing] = useState("");
+  const [dieselClosing, setDieselClosing] = useState("");
+  const [notes, setNotes] = useState("");
+  const [preview, setPreview] = useState<{
+    openingStockPetrol: number; openingStockDiesel: number;
+    closingStockPetrol: number; closingStockDiesel: number;
+    receiptsP: number; receiptsD: number;
+    calculatedSalesP: number; calculatedSalesD: number;
+  } | null>(null);
+  const utils = trpc.useUtils();
+
+  const saveClosing = trpc.reconciliation.saveClosingStock.useMutation({
+    onSuccess: (result) => {
+      setPreview(result);
+      toast.success(`Closing stock saved for ${result.reportDate}`);
+      utils.inventory.dailyStockStatement.invalidate();
+      onSaved();
+    },
+    onError: (err) => toast.error(`Save failed: ${err.message}`),
+  });
+
+  // Fetch yesterday's closing to show preview before saving
+  const prevDate = useMemo(() => {
+    const d = new Date(date);
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().slice(0, 10);
+  }, [date]);
+  const { data: prevReport } = trpc.reconciliation.byDate.useQuery({ reportDate: prevDate }, { enabled: open });
+
+  const openP = prevReport ? Number(prevReport.closingStockPetrol ?? 0) : null;
+  const openD = prevReport ? Number(prevReport.closingStockDiesel ?? 0) : null;
+
+  const handleSave = useCallback(() => {
+    const closingP = parseFloat(petrolClosing);
+    const closingD = parseFloat(dieselClosing);
+    if (isNaN(closingP) || closingP < 0) { toast.error("Enter a valid Petrol closing stock (litres)."); return; }
+    if (isNaN(closingD) || closingD < 0) { toast.error("Enter a valid Diesel closing stock (litres)."); return; }
+    if (!date) { toast.error("Select a date."); return; }
+    saveClosing.mutate({
+      reportDate: date,
+      closingStockPetrol: closingP,
+      closingStockDiesel: closingD,
+      notes: notes.trim() || undefined,
+    });
+  }, [date, petrolClosing, dieselClosing, notes, saveClosing]);
+
+  const handleClose = () => {
+    onOpenChange(false);
+    // Reset after close animation
+    setTimeout(() => {
+      setDate(today); setPetrolClosing(""); setDieselClosing(""); setNotes(""); setPreview(null);
+    }, 200);
+  };
+
+  // Live preview of derived sales (before saving)
+  const liveCalcP = openP !== null && petrolClosing !== "" ? Math.max(0, openP - parseFloat(petrolClosing)) : null;
+  const liveCalcD = openD !== null && dieselClosing !== "" ? Math.max(0, openD - parseFloat(dieselClosing)) : null;
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="bg-card border-border/50 max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <PackageCheck className="w-4 h-4 text-green-400" />
+            Enter Closing Stock
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 pt-1">
+          {/* Date */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Date</Label>
+            <Input
+              type="date"
+              value={date}
+              onChange={e => { setDate(e.target.value); setPreview(null); }}
+              className="bg-secondary border-border/50 h-8 text-sm"
+              min="2025-04-01"
+              max="2026-03-31"
+            />
+          </div>
+
+          {/* Opening stock info banner */}
+          {openP !== null && openD !== null ? (
+            <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/5 border border-primary/15 text-xs">
+              <Info className="w-3.5 h-3.5 text-primary shrink-0" />
+              <div className="flex gap-4">
+                <span><span className="text-muted-foreground">Opening Petrol:</span> <span className="font-semibold text-teal-400 tabular-nums">{fmtL(openP)} L</span></span>
+                <span><span className="text-muted-foreground">Opening Diesel:</span> <span className="font-semibold text-blue-400 tabular-nums">{fmtL(openD)} L</span></span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/5 border border-amber-500/20 text-xs text-muted-foreground">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              No previous day record found — opening stock will default to 0.
+            </div>
+          )}
+
+          {/* Petrol closing */}
+          <div className="space-y-2 p-3 rounded-lg border border-teal-500/20 bg-teal-500/5">
+            <div className="flex items-center gap-2">
+              <Droplets className="w-3.5 h-3.5 text-teal-400" />
+              <span className="text-xs font-semibold text-teal-400">Petrol (MS) — Closing Stock</span>
+            </div>
+            <Input
+              type="number"
+              value={petrolClosing}
+              onChange={e => { setPetrolClosing(e.target.value); setPreview(null); }}
+              placeholder="Enter closing litres e.g. 6500.000"
+              className="bg-secondary border-teal-500/30 h-9 text-sm"
+              min="0"
+              step="0.001"
+            />
+            {liveCalcP !== null && !isNaN(liveCalcP) && (
+              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                <ArrowRight className="w-3 h-3" />
+                Implied Sales ≈ <span className="font-semibold text-red-400 tabular-nums">{fmtL(liveCalcP)} L</span>
+                <span className="text-[9px]">(Opening − Closing; receipts added after save)</span>
+              </div>
+            )}
+          </div>
+
+          {/* Diesel closing */}
+          <div className="space-y-2 p-3 rounded-lg border border-blue-500/20 bg-blue-500/5">
+            <div className="flex items-center gap-2">
+              <Droplets className="w-3.5 h-3.5 text-blue-400" />
+              <span className="text-xs font-semibold text-blue-400">Diesel (HSD) — Closing Stock</span>
+            </div>
+            <Input
+              type="number"
+              value={dieselClosing}
+              onChange={e => { setDieselClosing(e.target.value); setPreview(null); }}
+              placeholder="Enter closing litres e.g. 8200.000"
+              className="bg-secondary border-blue-500/30 h-9 text-sm"
+              min="0"
+              step="0.001"
+            />
+            {liveCalcD !== null && !isNaN(liveCalcD) && (
+              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                <ArrowRight className="w-3 h-3" />
+                Implied Sales ≈ <span className="font-semibold text-red-400 tabular-nums">{fmtL(liveCalcD)} L</span>
+                <span className="text-[9px]">(Opening − Closing; receipts added after save)</span>
+              </div>
+            )}
+          </div>
+
+          {/* Notes */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold text-muted-foreground">Notes (optional)</Label>
+            <Input
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              placeholder="e.g. Tanker delivery received at 3pm"
+              className="bg-secondary border-border/50 h-8 text-sm"
+            />
+          </div>
+
+          {/* Post-save result summary */}
+          {preview && (
+            <>
+              <Separator />
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-green-400 flex items-center gap-1.5">
+                  <CheckCircle className="w-3.5 h-3.5" /> Saved — Reconciliation Summary
+                </p>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {/* Petrol summary */}
+                  <div className="p-2 rounded-md bg-teal-500/5 border border-teal-500/20 space-y-1">
+                    <p className="font-semibold text-teal-400 text-[10px] uppercase tracking-wide">Petrol (MS)</p>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Opening</span><span className="tabular-nums">{fmtL(preview.openingStockPetrol)} L</span></div>
+                    <div className="flex justify-between"><span className="text-green-400">+ Receipts</span><span className="tabular-nums text-green-400">{fmtL(preview.receiptsP)} L</span></div>
+                    <div className="flex justify-between"><span className="text-red-400">− Sales</span><span className="tabular-nums text-red-400">{fmtL(preview.calculatedSalesP)} L</span></div>
+                    <div className="flex justify-between font-semibold border-t border-teal-500/20 pt-1"><span>= Closing</span><span className="tabular-nums">{fmtL(preview.closingStockPetrol)} L</span></div>
+                  </div>
+                  {/* Diesel summary */}
+                  <div className="p-2 rounded-md bg-blue-500/5 border border-blue-500/20 space-y-1">
+                    <p className="font-semibold text-blue-400 text-[10px] uppercase tracking-wide">Diesel (HSD)</p>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Opening</span><span className="tabular-nums">{fmtL(preview.openingStockDiesel)} L</span></div>
+                    <div className="flex justify-between"><span className="text-green-400">+ Receipts</span><span className="tabular-nums text-green-400">{fmtL(preview.receiptsD)} L</span></div>
+                    <div className="flex justify-between"><span className="text-red-400">− Sales</span><span className="tabular-nums text-red-400">{fmtL(preview.calculatedSalesD)} L</span></div>
+                    <div className="flex justify-between font-semibold border-t border-blue-500/20 pt-1"><span>= Closing</span><span className="tabular-nums">{fmtL(preview.closingStockDiesel)} L</span></div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          <div className="flex gap-2">
+            <Button
+              className="flex-1 h-9 gap-2 bg-green-600 hover:bg-green-700 text-white"
+              onClick={handleSave}
+              disabled={saveClosing.isPending}
+            >
+              {saveClosing.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {saveClosing.isPending ? "Saving..." : "Save Closing Stock"}
+            </Button>
+            <Button variant="outline" className="h-9 px-4" onClick={handleClose}>
+              Close
+            </Button>
+          </div>
+
+          <p className="text-[10px] text-muted-foreground px-1">
+            <span className="font-semibold text-foreground">Formula: </span>
+            Sales = Opening + Receipts − Closing. Opening is auto-fetched from yesterday's closing. Receipts are pulled from delivered purchase orders.
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -336,6 +564,7 @@ export default function DailyStockStatement() {
   const [applied, setApplied] = useState({ fromDate: undefined as string | undefined, toDate: undefined as string | undefined, days: 14 });
   const [refreshKey, setRefreshKey] = useState(0);
   const [addDipOpen, setAddDipOpen] = useState(false);
+  const [addClosingOpen, setAddClosingOpen] = useState(false);
 
   const { data: rows, isLoading } = trpc.inventory.dailyStockStatement.useQuery(applied);
 
@@ -405,6 +634,12 @@ export default function DailyStockStatement() {
 
   return (
     <div className="space-y-5">
+      {/* Add Closing Stock Dialog */}
+      <AddClosingStockDialog
+        open={addClosingOpen}
+        onOpenChange={setAddClosingOpen}
+        onSaved={() => setRefreshKey(k => k + 1)}
+      />
       {/* Add Dip Reading Dialog */}
       <AddDipDialog
         open={addDipOpen}
@@ -421,7 +656,16 @@ export default function DailyStockStatement() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {/* Add Dip Reading button — prominent, always visible */}
+          {/* Enter Closing Stock button — primary action */}
+          <Button
+            size="sm"
+            className="h-8 text-xs gap-1.5 bg-green-600 hover:bg-green-700 text-white font-semibold"
+            onClick={() => setAddClosingOpen(true)}
+          >
+            <PackageCheck className="w-3.5 h-3.5" />
+            Enter Closing Stock
+          </Button>
+          {/* Add Dip Reading button — secondary action */}
           <Button
             size="sm"
             className="h-8 text-xs gap-1.5 bg-amber-500 hover:bg-amber-600 text-black font-semibold"

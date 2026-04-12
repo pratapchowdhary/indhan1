@@ -707,3 +707,92 @@ export async function getDailyStockStatement(fromDate?: string, toDate?: string,
     };
   });
 }
+
+// ─── Save Closing Stock (tank-dip based daily reconciliation) ─────────────────
+// User enters today's closing stock for Petrol and Diesel.
+// Opening = yesterday's closing (auto-fetched).
+// Receipts = delivered POs for this date (auto-fetched from purchase_orders).
+// Sales = Opening + Receipts − Closing (calculated).
+// Saves to daily_reports via upsert.
+export async function saveClosingStock(input: {
+  reportDate: string;           // YYYY-MM-DD
+  closingStockPetrol: number;   // litres entered by user
+  closingStockDiesel: number;   // litres entered by user
+  notes?: string;
+}): Promise<{
+  reportDate: string;
+  openingStockPetrol: number;
+  openingStockDiesel: number;
+  closingStockPetrol: number;
+  closingStockDiesel: number;
+  receiptsP: number;
+  receiptsD: number;
+  calculatedSalesP: number;
+  calculatedSalesD: number;
+}> {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+
+  const { reportDate, closingStockPetrol, closingStockDiesel, notes } = input;
+
+  // 1. Get yesterday's closing stock → today's opening
+  const prevDate = new Date(reportDate);
+  prevDate.setDate(prevDate.getDate() - 1);
+  const prevDateStr = prevDate.toISOString().slice(0, 10);
+
+  const prevRows = await db.select({
+    closingStockPetrol: dailyReports.closingStockPetrol,
+    closingStockDiesel: dailyReports.closingStockDiesel,
+  }).from(dailyReports).where(sql`${dailyReports.reportDate} = ${prevDateStr}`).limit(1);
+
+  const openP = prevRows[0] ? Number(prevRows[0].closingStockPetrol ?? 0) : 0;
+  const openD = prevRows[0] ? Number(prevRows[0].closingStockDiesel ?? 0) : 0;
+
+  // 2. Get delivered PO receipts for this date
+  const poRows = await db.select({
+    productId: purchaseOrders.productId,
+    received: sql<number>`COALESCE(SUM(${purchaseOrders.quantityReceived}), 0)`,
+  }).from(purchaseOrders).where(
+    sql`${purchaseOrders.status} = 'delivered' AND ${purchaseOrders.orderDate} = ${reportDate}`
+  ).groupBy(purchaseOrders.productId);
+
+  let receiptsP = 0;
+  let receiptsD = 0;
+  for (const po of poRows) {
+    if (po.productId === 1) receiptsP += Number(po.received);
+    if (po.productId === 2) receiptsD += Number(po.received);
+  }
+
+  // 3. Calculate sales: Opening + Receipts − Closing
+  // If result is negative (e.g. data entry error), clamp to 0 and flag
+  const calculatedSalesP = Math.max(0, openP + receiptsP - closingStockPetrol);
+  const calculatedSalesD = Math.max(0, openD + receiptsD - closingStockDiesel);
+
+  // 4. Upsert daily_reports row
+  const data: InsertDailyReport = {
+    reportDate,
+    openingStockPetrol: String(openP),
+    openingStockDiesel: String(openD),
+    closingStockPetrol: String(closingStockPetrol),
+    closingStockDiesel: String(closingStockDiesel),
+    petrolSalesQty: String(calculatedSalesP),
+    dieselSalesQty: String(calculatedSalesD),
+    ...(notes ? { notes } : {}),
+  };
+  await db.insert(dailyReports).values(data).onDuplicateKeyUpdate({ set: data });
+
+  // 5. Sync products.currentStock
+  await syncFuelStockFromLatestReport().catch(() => {/* non-fatal */});
+
+  return {
+    reportDate,
+    openingStockPetrol: openP,
+    openingStockDiesel: openD,
+    closingStockPetrol,
+    closingStockDiesel,
+    receiptsP,
+    receiptsD,
+    calculatedSalesP,
+    calculatedSalesD,
+  };
+}

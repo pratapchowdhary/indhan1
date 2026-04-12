@@ -13,6 +13,7 @@ import {
   getBankTransactions, createBankTransaction, updateBankReconciliation, getBankSummary,
   getWeighBridgeRecords, createWeighBridgeRecord, getWeighBridgeSummary,
   getDailyReports, getDailyReport, upsertDailyReport, syncFuelStockFromLatestReport,
+  saveClosingStock,
   getPLReport,
   getSalesTransactions, createSalesTransaction,
 } from "./db";
@@ -323,6 +324,18 @@ const reconciliationRouter = router({
     // Sync products.currentStock so Inventory page always shows the latest closing stock
     await syncFuelStockFromLatestReport().catch(() => {/* non-fatal */});
     return { success: true };
+  }),
+
+  // ─── Save closing stock (tank-dip based daily reconciliation) ──────────────
+  // User enters today's closing stock; system auto-calculates opening (= yesterday's closing)
+  // and sales (= opening + receipts − closing).
+  saveClosingStock: protectedProcedure.input(z.object({
+    reportDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    closingStockPetrol: z.number().min(0).max(100000),
+    closingStockDiesel: z.number().min(0).max(100000),
+    notes: z.string().optional(),
+  })).mutation(async ({ input }) => {
+    return saveClosingStock(input);
   }),
 });
 
