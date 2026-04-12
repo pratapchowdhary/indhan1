@@ -285,7 +285,35 @@ export async function recordCustomerPayment(data: InsertCustomerPayment) {
 export async function getAllProducts() {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(products).where(eq(products.isActive, true)).orderBy(products.category, products.name);
+
+  // Fetch all active products
+  const allProducts = await db.select().from(products).where(eq(products.isActive, true)).orderBy(products.category, products.name);
+
+  // Get the latest closing stock for Petrol and Diesel from daily_reports (authoritative source)
+  // This avoids relying on products.currentStock which can be stale after server restarts
+  const latestReport = await db.execute(sql`
+    SELECT closingStockPetrol, closingStockDiesel
+    FROM daily_reports
+    ORDER BY reportDate DESC
+    LIMIT 1
+  `) as any;
+  const report = (latestReport[0] as any[])?.[0];
+
+  if (report) {
+    const petrolStock = Number(report.closingStockPetrol ?? 0);
+    const dieselStock = Number(report.closingStockDiesel ?? 0);
+    return allProducts.map((p: any) => {
+      if (p.name === 'Petrol (MS)' && petrolStock > 0) {
+        return { ...p, currentStock: String(petrolStock.toFixed(3)) };
+      }
+      if (p.name === 'Diesel (HSD)' && dieselStock > 0) {
+        return { ...p, currentStock: String(dieselStock.toFixed(3)) };
+      }
+      return p;
+    });
+  }
+
+  return allProducts;
 }
 
 export async function createProduct(data: Omit<InsertProduct, 'id' | 'createdAt' | 'updatedAt' | 'isActive'>) {

@@ -574,3 +574,7 @@
 - [x] Frontend: Dip Variance column: red=loss, blue=gain, green=within 10L tolerance
 - [x] Frontend: Summary strip shows "Dip Readings: X / N days" counter
 - [x] Frontend: Info banner updated with correct formula explanation
+
+## Diesel Stock Persistent Reversion Bug
+- [x] Fix: Diesel currentStock reverted to 0 on every server restart — root cause: startup sync was silently failing (DB not ready at server.listen time)
+- [x] Permanent fix: getAllProducts() now JOINs daily_reports at query time and overrides currentStock for Petrol/Diesel with latest closingStock values — no sync step needed, always correct
