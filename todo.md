@@ -408,3 +408,7 @@
 - [x] Update button primary colour to teal
 - [x] Update dashboard KPI card accent colours (amber → teal throughout all 19 pages)
 - [x] Ensure text contrast is maintained throughout (white text on teal buttons)
+
+## Auto-Reconciled Status in Daily Sales Register
+- [x] Fix getDailyTrend and getDailyTrendByRange to include reconciliationStatus column from daily_reports
+- [x] Sales.tsx status badge already reads reconciliationStatus — now shows Reconciled (green) for all 365 days

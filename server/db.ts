@@ -173,6 +173,7 @@ export async function getDailyTrend(days: number) {
     cardCollected: dailyReports.cardCollected,
     onlineCollected: dailyReports.onlineCollected,
     creditSales: dailyReports.creditSales,
+    reconciliationStatus: dailyReports.reconciliationStatus,
   }).from(dailyReports).orderBy(desc(dailyReports.reportDate)).limit(days);
   // Normalize reportDate: TiDB may return full ISO timestamps for varchar date fields
   return rows.map(r => ({
@@ -200,6 +201,7 @@ export async function getDailyTrendByRange(startDate: string, endDate: string) {
     cardCollected: dailyReports.cardCollected,
     onlineCollected: dailyReports.onlineCollected,
     creditSales: dailyReports.creditSales,
+    reconciliationStatus: dailyReports.reconciliationStatus,
   }).from(dailyReports).where(
     sql`${dailyReports.reportDate} >= ${startDate} AND ${dailyReports.reportDate} <= ${endDate}`
   ).orderBy(dailyReports.reportDate);
