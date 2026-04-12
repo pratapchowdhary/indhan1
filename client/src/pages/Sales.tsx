@@ -92,6 +92,7 @@ export default function Sales() {
   const [appliedFrom, setAppliedFrom] = useState("2026-03-01");
   const [appliedTo, setAppliedTo] = useState("2026-03-31");
   const [showCustom, setShowCustom] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<"all" | "reconciled" | "pending">("all");
 
   const startDate = showCustom ? appliedFrom : PRESETS[preset]?.start ?? "2026-03-01";
   const endDate   = showCustom ? appliedTo   : PRESETS[preset]?.end   ?? "2026-03-31";
@@ -147,6 +148,23 @@ export default function Sales() {
   const periodLabel = showCustom
     ? `${appliedFrom} – ${appliedTo}`
     : PRESETS[preset]?.label ?? "Mar 2026";
+
+  // ─── Reconciliation Summary ───────────────────────────────────────────────────
+  const reconSummary = useMemo(() => {
+    if (!trend) return { total: 0, reconciled: 0, pending: 0, pct: 0 };
+    const total = trend.length;
+    const reconciled = trend.filter((r: any) => (r.reconciliationStatus ?? "pending") === "reconciled").length;
+    const pending = total - reconciled;
+    const pct = total > 0 ? Math.round((reconciled / total) * 100) : 0;
+    return { total, reconciled, pending, pct };
+  }, [trend]);
+
+  // ─── Filtered Trend ───────────────────────────────────────────────────────────
+  const filteredTrend = useMemo(() => {
+    if (!trend) return [];
+    if (statusFilter === "all") return trend;
+    return trend.filter((r: any) => (r.reconciliationStatus ?? "pending") === statusFilter);
+  }, [trend, statusFilter]);
 
   return (
     <div className="space-y-5">
@@ -329,10 +347,53 @@ export default function Sales() {
       {/* Daily Sales Table */}
       <Card className="bg-card border-border/50">
         <CardHeader className="pb-3 pt-4 px-5">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <CardTitle className="text-sm font-semibold">Daily Sales Register — {periodLabel}</CardTitle>
-            <Badge variant="outline" className="text-[10px] border-border/50">{trend?.length ?? 0} days</Badge>
+            <div className="flex items-center gap-2">
+              {/* Status Filter */}
+              {(["all", "reconciled", "pending"] as const).map(f => (
+                <button
+                  key={f}
+                  onClick={() => setStatusFilter(f)}
+                  className={`text-[10px] px-2.5 py-1 rounded-full border font-medium capitalize transition-colors ${
+                    statusFilter === f
+                      ? f === "reconciled" ? "bg-green-500/20 text-green-400 border-green-500/30"
+                        : f === "pending"    ? "bg-teal-500/20 text-teal-400 border-teal-500/30"
+                        : "bg-primary/20 text-primary border-primary/30"
+                      : "bg-transparent text-muted-foreground border-border/40 hover:border-border"
+                  }`}
+                >
+                  {f === "all" ? `All (${reconSummary.total})` : f === "reconciled" ? `Reconciled (${reconSummary.reconciled})` : `Pending (${reconSummary.pending})`}
+                </button>
+              ))}
+            </div>
           </div>
+          {/* Summary Strip */}
+          {reconSummary.total > 0 && (
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="bg-secondary/50 rounded-lg px-3 py-2 flex flex-col gap-0.5">
+                <span className="text-[10px] text-muted-foreground">Total Days</span>
+                <span className="text-sm font-bold tabular-nums">{reconSummary.total}</span>
+              </div>
+              <div className="bg-green-500/5 border border-green-500/20 rounded-lg px-3 py-2 flex flex-col gap-0.5">
+                <span className="text-[10px] text-green-400">Reconciled</span>
+                <span className="text-sm font-bold tabular-nums text-green-400">{reconSummary.reconciled}</span>
+              </div>
+              <div className="bg-teal-500/5 border border-teal-500/20 rounded-lg px-3 py-2 flex flex-col gap-0.5">
+                <span className="text-[10px] text-teal-400">Pending</span>
+                <span className="text-sm font-bold tabular-nums text-teal-400">{reconSummary.pending}</span>
+              </div>
+              <div className="bg-secondary/50 rounded-lg px-3 py-2 flex flex-col gap-0.5">
+                <span className="text-[10px] text-muted-foreground">Reconciled %</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold tabular-nums">{reconSummary.pct}%</span>
+                  <div className="flex-1 h-1.5 bg-border/30 rounded-full overflow-hidden">
+                    <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${reconSummary.pct}%` }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </CardHeader>
         <CardContent className="px-0 pb-0">
           <div className="overflow-x-auto">
@@ -345,7 +406,7 @@ export default function Sales() {
                 </tr>
               </thead>
               <tbody>
-                {trend && trend.length > 0 ? [...trend].reverse().map((r: any, i: number) => {
+                {filteredTrend && filteredTrend.length > 0 ? [...filteredTrend].reverse().map((r: any, i: number) => {
                   const date = String(r.reportDate ?? "").slice(0, 10);
                   const status = r.reconciliationStatus ?? "pending";
                   const totalSalesVal = Number(r.totalSalesValue ?? 0);
@@ -394,7 +455,7 @@ export default function Sales() {
                 }) : (
                   <tr>
                     <td colSpan={11} className="px-4 py-8 text-center text-muted-foreground">
-                      No data for selected period
+                      {statusFilter !== "all" ? `No ${statusFilter} days in selected period` : "No data for selected period"}
                     </td>
                   </tr>
                 )}

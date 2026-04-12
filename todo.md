@@ -412,3 +412,7 @@
 ## Auto-Reconciled Status in Daily Sales Register
 - [x] Fix getDailyTrend and getDailyTrendByRange to include reconciliationStatus column from daily_reports
 - [x] Sales.tsx status badge already reads reconciliationStatus — now shows Reconciled (green) for all 365 days
+
+## Daily Sales Register — Status Filter & Summary Strip
+- [x] Add All / Reconciled / Pending filter buttons above the Daily Sales Register table
+- [x] Add summary strip showing total days, reconciled count, pending count, and reconciliation % at top of register
