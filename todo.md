@@ -650,3 +650,11 @@
 - [x] Inventory: Removed Dip Readings & Variance section (cards, history table, dip state, getDipReadings query)
 - [x] Inventory: Removed unused imports (TrendingDown, TrendingUp, Minus, Save, Pencil, History, fmtL)
 - [x] Daily Stock Register: Confirmed as the single authoritative place for dip entry and variance
+
+## Daily Stock Register — Dip Backfill
+- [x] Checked daily_reports table — no dip columns exist (dip data was never imported)
+- [x] Import router already updated to read Dip and Manual Dip Reading columns from Daily Stock Statement sheet
+- [x] Added "Upload BEES Excel File" button directly on Daily Stock page (no-dip banner) — triggers inline import
+- [x] DipCell inline entry confirmed working: click amber cell, enter Stick + Litres, press Enter or save icon
+- [x] DipCell saves via fuelIntelligence.saveDipReading mutation and invalidates dailyStockStatement query
+- [x] TypeScript: 0 errors confirmed

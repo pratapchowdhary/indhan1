@@ -1,5 +1,5 @@
 import { trpc } from "@/lib/trpc";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   Droplets, TrendingDown, TrendingUp, AlertTriangle,
-  CheckCircle, Info, FlaskConical, Save, Pencil,
+  CheckCircle, Info, FlaskConical, Save, Pencil, Upload, Loader2,
 } from "lucide-react";
 
 const fmtL = (n: number | null | undefined) =>
@@ -194,6 +194,39 @@ export default function DailyStockStatement() {
   }
 
   const hasDips = rows?.some(r => r.petrol.dipReading !== null || r.diesel.dipReading !== null);
+
+  // ── Inline Excel dip import ──────────────────────────────────────────────────
+  const dipFileRef = useRef<HTMLInputElement>(null);
+  const [dipImporting, setDipImporting] = useState(false);
+  const utils = trpc.useUtils();
+
+  const handleDipExcelUpload = useCallback(async (file: File) => {
+    if (!file.name.endsWith(".xlsx") && !file.name.endsWith(".xls")) {
+      toast.error("Please upload an Excel (.xlsx/.xls) file"); return;
+    }
+    setDipImporting(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/import/excel", { method: "POST", body: formData });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error ?? "Import failed"); }
+      const data = await res.json();
+      const dipCount = Object.entries(data.breakdown ?? {})
+        .filter(([k]) => k.toLowerCase().includes("dip"))
+        .reduce((s, [, v]) => s + (v as number), 0);
+      if (dipCount > 0) {
+        toast.success(`${dipCount} dip readings imported successfully`);
+        utils.inventory.dailyStockStatement.invalidate();
+      } else {
+        toast.warning("No dip readings found. Ensure the file has a 'Daily Stock Statement' sheet with Dip and Manual Dip Reading columns.");
+      }
+    } catch (err: any) {
+      toast.error(err.message ?? "Import failed");
+    } finally {
+      setDipImporting(false);
+      if (dipFileRef.current) dipFileRef.current.value = "";
+    }
+  }, [utils]);
 
   return (
     <div className="space-y-5">
@@ -446,13 +479,30 @@ export default function DailyStockStatement() {
               <span className="font-semibold text-foreground">Option 1 — Manual entry:</span> Click any amber{" "}
               <span className="font-semibold text-amber-400">Dip Reading</span> cell in the table above to enter a reading for that day.
             </div>
-            <div>
-              <span className="font-semibold text-foreground">Option 2 — Bulk import from Excel:</span> Go to{" "}
-              <a href="/import" className="text-primary underline underline-offset-2 hover:text-primary/80">Data Import</a>{" "}
-              and re-upload the BEES Excel file. The importer will read the{" "}
-              <span className="font-semibold text-amber-400">Dip</span> and{" "}
-              <span className="font-semibold text-amber-400">Manual Dip Reading</span> columns from the{" "}
-              <span className="font-semibold">Daily Stock Statement</span> sheet and populate all historical dip readings automatically.
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-wrap">
+              <span className="font-semibold text-foreground">Option 2 — Bulk import from Excel:</span>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs gap-1.5 border-amber-500/40 text-amber-400 hover:bg-amber-500/10 w-fit"
+                disabled={dipImporting}
+                onClick={() => dipFileRef.current?.click()}
+              >
+                {dipImporting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                {dipImporting ? "Importing dip readings..." : "Upload BEES Excel File"}
+              </Button>
+              <input
+                ref={dipFileRef}
+                type="file"
+                accept=".xlsx,.xls"
+                className="hidden"
+                onChange={e => { const f = e.target.files?.[0]; if (f) handleDipExcelUpload(f); }}
+              />
+              <span className="text-muted-foreground">
+                The importer reads the <span className="font-semibold text-amber-400">Dip</span> and{" "}
+                <span className="font-semibold text-amber-400">Manual Dip Reading</span> columns from the{" "}
+                <span className="font-semibold">Daily Stock Statement</span> sheet automatically.
+              </span>
             </div>
             <div className="text-[10px] text-muted-foreground/70">
               Dip Variance = Closing Stock − Manual Dip Reading. Positive = system closing &gt; dip (possible loss). Negative = dip &gt; closing (possible gain/meter error).
