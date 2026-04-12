@@ -25,7 +25,7 @@ import { useIsMobile } from "@/hooks/useMobile";
 import {
   LayoutDashboard, RefreshCw, Users, Package, Receipt,
   Landmark, TrendingUp, FileUp, Settings, LogOut,
-  PanelLeft, Fuel, UserCheck, ChevronRight, Bell, Sun, Moon,
+  PanelLeft, Fuel, UserCheck, ChevronRight, Bell, Sun, Moon, Info,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -47,6 +47,7 @@ const menuItems = [
   { icon: UserCheck, label: "Employees", path: "/employees", group: "People" },
   { icon: FileUp, label: "Import Data", path: "/import", group: "Setup" },
   { icon: Settings, label: "Settings", path: "/settings", group: "Setup" },
+  { icon: Info, label: "About Station", path: "/about", group: "Setup" },
 ];
 
 const groups = ["Operations", "Finance", "People", "Setup"];
@@ -90,12 +91,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="flex flex-col items-center gap-8 p-8 max-w-sm w-full">
           <div className="flex flex-col items-center gap-3">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-              <Fuel className="w-8 h-8 text-primary" />
+            <div className="w-20 h-20 rounded-2xl overflow-hidden border border-primary/20">
+              <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663403005351/5eGjBPBASNJYbjmGqsiMsX/indhan-logo-6ekMaVrYfXxqGE4arLFfFC.webp" alt="Indhan" className="w-full h-full object-cover" />
             </div>
             <div className="text-center">
               <h1 className="text-3xl font-bold text-primary tracking-tight">इंधन</h1>
-              <p className="text-sm text-muted-foreground mt-1">Indhan — Fuel Station OS</p>
+              <p className="text-sm text-muted-foreground mt-1">Fuel Station Operations Platform</p>
             </div>
           </div>
           <div className="text-center space-y-2">
@@ -161,10 +162,14 @@ function DashboardLayoutContent({ children, setSidebarWidth }: { children: React
               <button onClick={toggleSidebar} className="h-9 w-9 flex items-center justify-center hover:bg-accent/50 rounded-lg transition-colors shrink-0">
                 <PanelLeft className="h-4 w-4 text-muted-foreground" />
               </button>
-              {!isCollapsed && (
+              {isCollapsed ? (
+                <div className="w-7 h-7 rounded-lg overflow-hidden shrink-0">
+                  <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663403005351/5eGjBPBASNJYbjmGqsiMsX/indhan-logo-6ekMaVrYfXxqGE4arLFfFC.webp" alt="Indhan" className="w-full h-full object-cover" />
+                </div>
+              ) : (
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-7 h-7 rounded-lg bg-primary/15 border border-primary/25 flex items-center justify-center shrink-0">
-                    <Fuel className="w-3.5 h-3.5 text-primary" />
+                  <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0">
+                    <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663403005351/5eGjBPBASNJYbjmGqsiMsX/indhan-logo-6ekMaVrYfXxqGE4arLFfFC.webp" alt="Indhan" className="w-full h-full object-cover" />
                   </div>
                   <div className="min-w-0">
                     <div className="font-bold text-sm text-primary tracking-tight">इंधन</div>
@@ -176,6 +181,13 @@ function DashboardLayoutContent({ children, setSidebarWidth }: { children: React
           </SidebarHeader>
 
           <SidebarContent className="px-2 py-3 gap-0">
+            {!isCollapsed && (
+              <div className="mx-2 mb-4 px-3 py-2.5 rounded-lg bg-primary/8 border border-primary/15">
+                <p className="text-xs font-bold text-primary truncate">BEES Fuel Station</p>
+                <p className="text-[10px] text-muted-foreground leading-tight mt-0.5 truncate">NH-44, Kothur, Hyderabad</p>
+                <p className="text-[10px] text-muted-foreground leading-tight truncate">Telangana — 509228</p>
+              </div>
+            )}
             {groups.map(group => {
               const items = menuItems.filter(i => i.group === group);
               return (

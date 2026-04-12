@@ -16,6 +16,7 @@ import Employees from "./pages/Employees";
 import ImportData from "./pages/ImportData";
 import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
+import About from "./pages/About";
 
 function Router() {
   return (
@@ -32,6 +33,7 @@ function Router() {
         <Route path="/employees" component={Employees} />
         <Route path="/import" component={ImportData} />
         <Route path="/settings" component={SettingsPage} />
+        <Route path="/about" component={About} />
         <Route component={NotFound} />
       </Switch>
     </DashboardLayout>

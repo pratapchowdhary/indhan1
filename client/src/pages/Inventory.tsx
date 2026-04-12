@@ -1,27 +1,76 @@
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Package, AlertTriangle, Plus, TrendingDown, ShoppingCart, Fuel } from "lucide-react";
+import { Plus, ShoppingCart, AlertTriangle, Droplets, Package, CheckCircle, Clock, Truck } from "lucide-react";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n);
 
-function StockBar({ current, min, max }: { current: number; min: number; max: number }) {
-  const pct = Math.min(100, Math.max(0, ((current - min) / (max - min)) * 100));
-  const color = pct < 20 ? "bg-red-500" : pct < 40 ? "bg-amber-500" : "bg-green-500";
+// Circular gauge SVG component
+function CircleGauge({ pct, color, size = 80 }: { pct: number; color: string; size?: number }) {
+  const r = (size - 10) / 2;
+  const circ = 2 * Math.PI * r;
+  const dash = (pct / 100) * circ;
   return (
-    <div className="w-full bg-secondary rounded-full h-1.5 mt-1">
-      <div className={`h-1.5 rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
-    </div>
+    <svg width={size} height={size} className="rotate-[-90deg]">
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="oklch(0.22 0.014 240)" strokeWidth={8} />
+      <circle
+        cx={size / 2} cy={size / 2} r={r} fill="none"
+        stroke={color} strokeWidth={8}
+        strokeDasharray={`${dash} ${circ}`}
+        strokeLinecap="round"
+        style={{ transition: "stroke-dasharray 0.6s ease" }}
+      />
+    </svg>
   );
 }
+
+function StockGaugeCard({ product }: { product: any }) {
+  const current = Number(product.currentStock ?? 0);
+  const min = Number(product.minStockLevel ?? 0);
+  const max = Number(product.maxStockLevel ?? 10000);
+  const pct = max > min ? Math.min(100, Math.max(0, ((current - min) / (max - min)) * 100)) : 0;
+  const isCritical = pct < 15;
+  const isLow = pct < 35;
+  const color = isCritical ? "#ef4444" : isLow ? "#f59e0b" : "#22c55e";
+  const statusText = isCritical ? "Critical" : isLow ? "Low" : "Good";
+  const statusBg = isCritical ? "bg-red-500/10 text-red-400 border-red-500/20" : isLow ? "bg-amber-500/10 text-amber-400 border-amber-500/20" : "bg-green-500/10 text-green-400 border-green-500/20";
+
+  return (
+    <Card className={`bg-card border-border/50 ${isCritical ? "border-red-500/40" : ""}`}>
+      <CardContent className="p-4 flex flex-col items-center gap-2">
+        <div className="relative w-20 h-20">
+          <CircleGauge pct={pct} color={color} size={80} />
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-lg font-bold tabular-nums leading-none" style={{ color }}>{Math.round(pct)}%</span>
+          </div>
+        </div>
+        <div className="text-center">
+          <p className="text-sm font-semibold leading-tight">{product.name}</p>
+          <p className="text-xl font-bold tabular-nums mt-0.5">{current.toLocaleString("en-IN")}</p>
+          <p className="text-[10px] text-muted-foreground">{product.unit}</p>
+        </div>
+        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${statusBg}`}>{statusText}</span>
+        <div className="w-full flex justify-between text-[10px] text-muted-foreground pt-1 border-t border-border/30">
+          <span>Min {min.toLocaleString("en-IN")}</span>
+          <span>{fmt(Number(product.sellingPrice))}/{product.unit}</span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+const PO_STATUS_META: Record<string, { icon: any; color: string; bg: string }> = {
+  delivered: { icon: CheckCircle, color: "text-green-400", bg: "bg-green-500/10" },
+  ordered:   { icon: Truck,       color: "text-blue-400",  bg: "bg-blue-500/10"  },
+  pending:   { icon: Clock,       color: "text-amber-400", bg: "bg-amber-500/10" },
+};
 
 export default function Inventory() {
   const [addOpen, setAddOpen] = useState(false);
@@ -39,85 +88,70 @@ export default function Inventory() {
   });
 
   const createPO = trpc.inventory.createPurchaseOrder.useMutation({
-    onSuccess: () => { toast.success("Purchase order created"); setPoOpen(false); },
+    onSuccess: () => { toast.success("PO created"); setPoOpen(false); },
     onError: (e) => toast.error(e.message),
   });
-
-  const categoryColors: Record<string, string> = {
-    fuel: "text-amber-400 bg-amber-500/10 border-amber-500/20",
-    lubricant: "text-green-400 bg-green-500/10 border-green-500/20",
-    other: "text-blue-400 bg-blue-500/10 border-blue-500/20",
-  };
 
   const fuelProducts = products?.filter((p: any) => p.category === "fuel") ?? [];
   const lubricants = products?.filter((p: any) => p.category === "lubricant") ?? [];
   const others = products?.filter((p: any) => p.category === "other") ?? [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Inventory Management</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">Real-time stock levels, alerts, and purchase orders</p>
+        <div className="flex items-center gap-2">
+          {lowStock && lowStock.length > 0 && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20">
+              <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+              <span className="text-xs font-semibold text-red-400">{lowStock.length} low stock</span>
+            </div>
+          )}
+          <span className="text-xs text-muted-foreground">{products?.length ?? 0} products</span>
         </div>
         <div className="flex gap-2">
           <Dialog open={poOpen} onOpenChange={setPoOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
-                <ShoppingCart className="w-4 h-4" /> Purchase Order
+              <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs">
+                <ShoppingCart className="w-3.5 h-3.5" /> PO
               </Button>
             </DialogTrigger>
             <DialogContent className="bg-card border-border/50">
-              <DialogHeader>
-                <DialogTitle>New Purchase Order</DialogTitle>
-              </DialogHeader>
+              <DialogHeader><DialogTitle>New Purchase Order</DialogTitle></DialogHeader>
               <div className="space-y-4 pt-2">
-                <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 text-sm">
-                  <p className="font-medium text-primary">Supplier: Indian Oil Corporation</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">All fuel purchases are sourced from IOC</p>
+                <div className="px-3 py-2 rounded-lg bg-primary/5 border border-primary/15 text-xs">
+                  <p className="font-semibold text-primary">Indian Oil Corporation</p>
                 </div>
-                <div className="space-y-2">
-                  <Label>Product</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Product</Label>
                   <Select onValueChange={v => setPoForm(f => ({ ...f, productId: v }))}>
-                    <SelectTrigger className="bg-secondary border-border/50">
-                      <SelectValue placeholder="Select product" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {products?.map((p: any) => (
-                        <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
-                      ))}
-                    </SelectContent>
+                    <SelectTrigger className="bg-secondary border-border/50 h-8 text-sm"><SelectValue placeholder="Select product" /></SelectTrigger>
+                    <SelectContent>{products?.map((p: any) => <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>Quantity</Label>
-                    <Input placeholder="e.g. 5000" className="bg-secondary border-border/50" value={poForm.quantityOrdered} onChange={e => setPoForm(f => ({ ...f, quantityOrdered: e.target.value }))} />
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Quantity</Label>
+                    <Input placeholder="5000" className="bg-secondary border-border/50 h-8 text-sm" value={poForm.quantityOrdered} onChange={e => setPoForm(f => ({ ...f, quantityOrdered: e.target.value }))} />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Unit Price (₹)</Label>
-                    <Input placeholder="e.g. 95.50" className="bg-secondary border-border/50" value={poForm.unitPrice} onChange={e => setPoForm(f => ({ ...f, unitPrice: e.target.value }))} />
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Unit Price (₹)</Label>
+                    <Input placeholder="95.50" className="bg-secondary border-border/50 h-8 text-sm" value={poForm.unitPrice} onChange={e => setPoForm(f => ({ ...f, unitPrice: e.target.value }))} />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Notes</Label>
-                  <Input placeholder="Optional notes" className="bg-secondary border-border/50" value={poForm.notes} onChange={e => setPoForm(f => ({ ...f, notes: e.target.value }))} />
-                </div>
-                <Button className="w-full" onClick={() => {
-                  if (!poForm.productId || !poForm.quantityOrdered || !poForm.unitPrice) { toast.error("Fill all required fields"); return; }
-                  const qty = parseFloat(poForm.quantityOrdered);
-                  const price = parseFloat(poForm.unitPrice);
+                <Button className="w-full h-9" onClick={() => {
+                  if (!poForm.productId || !poForm.quantityOrdered || !poForm.unitPrice) { toast.error("Fill all fields"); return; }
                   createPO.mutate({
                     productId: parseInt(poForm.productId),
                     quantityOrdered: poForm.quantityOrdered,
                     unitPrice: poForm.unitPrice,
-                    totalAmount: String(qty * price),
-                    orderDate: new Date().toISOString().split("T")[0],
+                    totalAmount: String(parseFloat(poForm.quantityOrdered) * parseFloat(poForm.unitPrice)),
+                    orderDate: "2026-03-31",
                     supplier: "Indian Oil Corporation",
                     notes: poForm.notes || undefined,
                   });
                 }} disabled={createPO.isPending}>
-                  {createPO.isPending ? "Creating..." : "Create Purchase Order"}
+                  {createPO.isPending ? "Creating..." : "Create PO"}
                 </Button>
               </div>
             </DialogContent>
@@ -125,24 +159,20 @@ export default function Inventory() {
 
           <Dialog open={addOpen} onOpenChange={setAddOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" className="gap-2">
-                <Plus className="w-4 h-4" /> Add Product
-              </Button>
+              <Button size="sm" className="gap-1.5 h-8 text-xs"><Plus className="w-3.5 h-3.5" /> Add</Button>
             </DialogTrigger>
             <DialogContent className="bg-card border-border/50">
-              <DialogHeader>
-                <DialogTitle>Add Product</DialogTitle>
-              </DialogHeader>
+              <DialogHeader><DialogTitle>Add Product</DialogTitle></DialogHeader>
               <div className="space-y-4 pt-2">
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2 col-span-2">
-                    <Label>Product Name</Label>
-                    <Input placeholder="e.g. Petrol" className="bg-secondary border-border/50" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+                  <div className="space-y-1.5 col-span-2">
+                    <Label className="text-xs">Name</Label>
+                    <Input placeholder="e.g. Petrol" className="bg-secondary border-border/50 h-8 text-sm" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Category</Label>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Category</Label>
                     <Select defaultValue="fuel" onValueChange={v => setForm(f => ({ ...f, category: v }))}>
-                      <SelectTrigger className="bg-secondary border-border/50"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="bg-secondary border-border/50 h-8 text-sm"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="fuel">Fuel</SelectItem>
                         <SelectItem value="lubricant">Lubricant</SelectItem>
@@ -150,46 +180,25 @@ export default function Inventory() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Unit</Label>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Unit</Label>
                     <Select defaultValue="L" onValueChange={v => setForm(f => ({ ...f, unit: v }))}>
-                      <SelectTrigger className="bg-secondary border-border/50"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="bg-secondary border-border/50 h-8 text-sm"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="L">Litres (L)</SelectItem>
-                        <SelectItem value="Kg">Kilograms (Kg)</SelectItem>
+                        <SelectItem value="L">Litres</SelectItem>
+                        <SelectItem value="Kg">Kg</SelectItem>
                         <SelectItem value="Units">Units</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Current Stock</Label>
-                    <Input placeholder="0" className="bg-secondary border-border/50" value={form.currentStock} onChange={e => setForm(f => ({ ...f, currentStock: e.target.value }))} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Min Stock Level</Label>
-                    <Input placeholder="0" className="bg-secondary border-border/50" value={form.minStockLevel} onChange={e => setForm(f => ({ ...f, minStockLevel: e.target.value }))} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Cost Price (₹)</Label>
-                    <Input placeholder="0" className="bg-secondary border-border/50" value={form.costPrice} onChange={e => setForm(f => ({ ...f, costPrice: e.target.value }))} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Selling Price (₹)</Label>
-                    <Input placeholder="0" className="bg-secondary border-border/50" value={form.sellingPrice} onChange={e => setForm(f => ({ ...f, sellingPrice: e.target.value }))} />
-                  </div>
+                  <div className="space-y-1.5"><Label className="text-xs">Current Stock</Label><Input placeholder="0" className="bg-secondary border-border/50 h-8 text-sm" value={form.currentStock} onChange={e => setForm(f => ({ ...f, currentStock: e.target.value }))} /></div>
+                  <div className="space-y-1.5"><Label className="text-xs">Min Level</Label><Input placeholder="0" className="bg-secondary border-border/50 h-8 text-sm" value={form.minStockLevel} onChange={e => setForm(f => ({ ...f, minStockLevel: e.target.value }))} /></div>
+                  <div className="space-y-1.5"><Label className="text-xs">Cost (₹)</Label><Input placeholder="0" className="bg-secondary border-border/50 h-8 text-sm" value={form.costPrice} onChange={e => setForm(f => ({ ...f, costPrice: e.target.value }))} /></div>
+                  <div className="space-y-1.5"><Label className="text-xs">Sell Price (₹)</Label><Input placeholder="0" className="bg-secondary border-border/50 h-8 text-sm" value={form.sellingPrice} onChange={e => setForm(f => ({ ...f, sellingPrice: e.target.value }))} /></div>
                 </div>
-                <Button className="w-full" onClick={() => {
-                  if (!form.name) { toast.error("Product name required"); return; }
-                  addProduct.mutate({
-                    name: form.name,
-                    category: form.category as any,
-                    unit: form.unit,
-                    currentStock: form.currentStock || "0",
-                    minStockLevel: form.minStockLevel || "0",
-                    maxStockLevel: form.maxStockLevel || "10000",
-                    costPrice: form.costPrice || "0",
-                    sellingPrice: form.sellingPrice || "0",
-                  });
+                <Button className="w-full h-9" onClick={() => {
+                  if (!form.name) { toast.error("Name required"); return; }
+                  addProduct.mutate({ name: form.name, category: form.category as any, unit: form.unit, currentStock: form.currentStock || "0", minStockLevel: form.minStockLevel || "0", maxStockLevel: form.maxStockLevel || "10000", costPrice: form.costPrice || "0", sellingPrice: form.sellingPrice || "0" });
                 }} disabled={addProduct.isPending}>
                   {addProduct.isPending ? "Adding..." : "Add Product"}
                 </Button>
@@ -199,127 +208,86 @@ export default function Inventory() {
         </div>
       </div>
 
-      {/* Low Stock Alert Banner */}
-      {lowStock && lowStock.length > 0 && (
-        <div className="flex items-center gap-3 p-4 rounded-xl border border-amber-500/30 bg-amber-500/8">
-          <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-amber-400">{lowStock.length} product{lowStock.length > 1 ? "s" : ""} below minimum stock level</p>
-            <p className="text-xs text-muted-foreground">{lowStock.map((p: any) => p.name).join(", ")}</p>
+      {/* Fuel Products — large gauge cards */}
+      {fuelProducts.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <Droplets className="w-4 h-4 text-amber-400" />
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fuel</span>
           </div>
-          <Button variant="outline" size="sm" className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10 text-xs">
-            Order Now
-          </Button>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {fuelProducts.map((p: any) => <StockGaugeCard key={p.id} product={p} />)}
+          </div>
         </div>
       )}
 
-      {/* Fuel Products */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-          <Fuel className="w-4 h-4 text-amber-400" /> Fuel Products
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {fuelProducts.length > 0 ? fuelProducts.map((p: any) => (
-            <Card key={p.id} className="bg-card border-border/50">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h4 className="font-semibold text-sm">{p.name}</h4>
-                    <p className="text-xs text-muted-foreground">{p.category}</p>
-                  </div>
-                  <Badge className={`text-[10px] ${Number(p.currentStock) <= Number(p.minStockLevel) ? "bg-red-500/15 text-red-400 border-red-500/20" : "bg-green-500/15 text-green-400 border-green-500/20"}`}>
-                    {Number(p.currentStock) <= Number(p.minStockLevel) ? "Low Stock" : "In Stock"}
-                  </Badge>
-                </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Current</span>
-                    <span className="font-bold tabular-nums">{p.currentStock} {p.unit}</span>
-                  </div>
-                  <StockBar current={Number(p.currentStock)} min={Number(p.minStockLevel)} max={Number(p.maxStockLevel ?? 10000)} />
-                  <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-                    <span>Min: {p.minStockLevel} {p.unit}</span>
-                    <span>Sell: {fmt(Number(p.sellingPrice))}/{p.unit}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )) : (
-            <Card className="bg-card border-border/50 border-dashed col-span-3">
-              <CardContent className="p-8 text-center">
-                <Fuel className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">No fuel products added yet</p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
-
       {/* Lubricants */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-          <Package className="w-4 h-4 text-green-400" /> Lubricants
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {lubricants.length > 0 ? lubricants.map((p: any) => (
-            <Card key={p.id} className="bg-card border-border/50">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-2">
-                  <h4 className="font-semibold text-sm">{p.name}</h4>
-                  <Badge className={`text-[10px] ${Number(p.currentStock) <= Number(p.minStockLevel) ? "bg-red-500/15 text-red-400 border-red-500/20" : "bg-green-500/15 text-green-400 border-green-500/20"}`}>
-                    {Number(p.currentStock) <= Number(p.minStockLevel) ? "Low" : "OK"}
-                  </Badge>
-                </div>
-                <p className="text-xl font-bold tabular-nums">{p.currentStock} <span className="text-sm font-normal text-muted-foreground">{p.unit}</span></p>
-                <StockBar current={Number(p.currentStock)} min={Number(p.minStockLevel)} max={Number(p.maxStockLevel ?? 100)} />
-                <p className="text-[10px] text-muted-foreground mt-1">Min: {p.minStockLevel} {p.unit}</p>
-              </CardContent>
-            </Card>
-          )) : (
-            <Card className="bg-card border-border/50 border-dashed col-span-4">
-              <CardContent className="p-6 text-center">
-                <p className="text-sm text-muted-foreground">No lubricants added yet</p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
-
-      {/* Recent Purchase Orders */}
-      <Card className="bg-card border-border/50">
-        <CardHeader className="pb-3 pt-4 px-5">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <ShoppingCart className="w-4 h-4 text-primary" /> Recent Purchase Orders
-            </CardTitle>
+      {lubricants.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <Package className="w-4 h-4 text-green-400" />
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Lubricants</span>
           </div>
-        </CardHeader>
-        <CardContent className="px-5 pb-4">
-          {purchaseOrders && purchaseOrders.length > 0 ? (
-            <div className="space-y-2">
-              {purchaseOrders.slice(0, 5).map((po: any) => (
-                <div key={po.id} className="flex items-center justify-between py-2.5 border-b border-border/30 last:border-0">
-                  <div>
-                    <p className="text-sm font-medium">{po.productName ?? "Product"}</p>
-                    <p className="text-xs text-muted-foreground">{po.supplier} · {po.orderDate}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold tabular-nums">{po.quantityOrdered} units</p>
-                    <Badge className={`text-[10px] mt-0.5 ${po.status === "delivered" ? "bg-green-500/15 text-green-400 border-green-500/20" : po.status === "ordered" ? "bg-blue-500/15 text-blue-400 border-blue-500/20" : "bg-amber-500/15 text-amber-400 border-amber-500/20"}`}>
-                      {po.status}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-6">
-              <ShoppingCart className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">No purchase orders yet</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {lubricants.map((p: any) => <StockGaugeCard key={p.id} product={p} />)}
+          </div>
+        </div>
+      )}
+
+      {/* Others */}
+      {others.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <Package className="w-4 h-4 text-blue-400" />
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Other</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {others.map((p: any) => <StockGaugeCard key={p.id} product={p} />)}
+          </div>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {(!products || products.length === 0) && (
+        <div className="flex flex-col items-center justify-center py-20 gap-3 text-muted-foreground">
+          <Package className="w-12 h-12 opacity-20" />
+          <p className="text-sm">No products yet</p>
+          <Button size="sm" variant="outline" onClick={() => setAddOpen(true)}><Plus className="w-3.5 h-3.5 mr-1.5" /> Add first product</Button>
+        </div>
+      )}
+
+      {/* Purchase Orders */}
+      {purchaseOrders && purchaseOrders.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <ShoppingCart className="w-4 h-4 text-primary" />
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Purchase Orders</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {purchaseOrders.slice(0, 6).map((po: any) => {
+              const meta = PO_STATUS_META[po.status] ?? PO_STATUS_META.pending;
+              const Icon = meta.icon;
+              return (
+                <Card key={po.id} className="bg-card border-border/50">
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-xl ${meta.bg} flex items-center justify-center shrink-0`}>
+                      <Icon className={`w-5 h-5 ${meta.color}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate">{po.productName ?? "Product"}</p>
+                      <p className="text-[10px] text-muted-foreground">{po.orderDate} · {po.quantityOrdered} units</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-bold tabular-nums">{fmt(Number(po.totalAmount ?? 0))}</p>
+                      <span className={`text-[10px] font-medium ${meta.color}`}>{po.status}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

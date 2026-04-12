@@ -166,3 +166,24 @@
 - [x] Sathi AI: empty question rejected, >1000 chars rejected
 - [x] Router registration: all 38 procedures verified as registered
 - [x] Input validation: SQL injection via date fields blocked by Zod regex, wrong date formats rejected
+
+## Station Branding & About Page
+- [x] Generated Indhan logo (amber drop + इंधन text, no fire/pump nozzle) — uploaded to CDN
+- [x] Wired Indhan favicon into HTML head (index.html)
+- [x] Sidebar header uses Indhan logo image
+- [x] Login screen uses Indhan logo image
+- [x] Station name "Bhagya Lakshmi Eco Energy Station" and address shown in sidebar
+- [x] Built About page: station profile, products/services, license/registration (sim), team section
+- [x] Team section uses REAL employee names from payroll data (11 staff)
+- [x] Simulated data clearly marked with amber 'sim' badge (license numbers, contact details)
+- [x] Added About page to sidebar navigation (Setup group) and App.tsx routing
+
+## Visual Overhaul (Visuals-First Design)
+- [x] Inventory: circular stock gauges (SVG), colour-coded status (green/amber/red), PO cards with status icons
+- [x] Customers: receivables aging donut chart, credit utilisation progress bars, customer cards with initials avatars
+- [x] Expenses: donut chart for category breakdown, category cards with spend bars
+- [x] Dashboard: expenses by category donut chart (real data, responds to date filter)
+- [x] All pages: minimum text, maximum visuals — icons, charts, colour codes, progress bars, badges
+
+## Remaining Visual Overhaul Items
+- [ ] Bank Statement: complete visuals-first redesign (transaction type icons, running balance trend chart, colour-coded debit/credit)
