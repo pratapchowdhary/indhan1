@@ -529,3 +529,11 @@
 - [x] Fix: products.currentStock for Diesel (HSD) showing 0 — synced from daily_reports.closingStockDiesel (now 6,823.32 L)
 - [x] Fix: products.currentStock for Petrol (MS) — synced from daily_reports.closingStockPetrol (now 11,920.19 L)
 - [x] Add: auto-sync products.currentStock after every reconciliation.upsert save via syncFuelStockFromLatestReport()
+
+## Diesel Volume Bug Fix (Sales & Nozzles Page)
+- [ ] Investigate: Diesel Volume showing 5,651.1 KL — verify against daily_reports sum and Excel source data
+- [ ] Fix: correct the query or unit conversion causing wrong Diesel Volume on Sales & Nozzles page
+
+## Deployment Build Fix
+- [x] Fix: vite-plugin-pwa workbox build failure — main bundle 3.5 MB exceeds default 2 MB precache limit; raised maximumFileSizeToCacheInBytes to 5 MiB in vite.config.ts
+- [x] Verified: production build now completes successfully (369 entries precached, sw.js generated)
