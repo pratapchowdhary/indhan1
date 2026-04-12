@@ -601,3 +601,13 @@
 - [x] Header: h-14 on mobile, h-16 on desktop; content padding p-3 on mobile, p-6 on desktop
 - [ ] Publish app to production URL then test install prompt on Android Chrome
 - [ ] Verify iOS "Add to Home Screen" works on published URL
+
+## Dip Reading — Inventory Page Integration
+- [x] Inventory: Manual dip reading entry cards for Petrol (MS) and Diesel (HSD) with inline save
+- [x] Inventory: Shows today's date, system stock (from last reconciliation), and current dip reading
+- [x] Inventory: Dip Variance = System Stock − Manual Dip Reading with colour-coded badge
+- [x] Inventory: Green ±10L = OK, Red = stock loss, Blue = stock gain
+- [x] Inventory: Live preview of variance while typing dip value (before saving)
+- [x] Inventory: 7-day dip reading history table (toggle with History button)
+- [x] Inventory: History table shows Petrol Dip, Petrol Variance, Diesel Dip, Diesel Variance per date
+- [x] Inventory: Variance note explains formula and historical limitation
