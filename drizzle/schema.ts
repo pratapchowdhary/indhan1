@@ -596,7 +596,8 @@ export const cashCollections = mysqlTable("cash_collections", {
   nozzleId: int("nozzle_id"),                                  // null = general / all nozzles
   collectionTime: timestamp("collection_time").defaultNow().notNull(),
   amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
-  paymentMode: mysqlEnum("payment_mode", ["cash", "card", "online", "credit"]).default("cash"),
+  paymentMode: mysqlEnum("payment_mode", ["cash", "digital", "credit"]).default("cash"),
+  digitalSubType: varchar("digital_sub_type", { length: 20 }),  // upi|phonepe|card|bank_transfer|bhim
   customerId: int("customer_id"),                              // for credit sales
   customerName: varchar("customer_name", { length: 255 }),
   notes: text("notes"),

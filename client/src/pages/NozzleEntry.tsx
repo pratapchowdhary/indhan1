@@ -36,10 +36,20 @@ const fuelColor = (type: string) =>
     : { bg: "bg-blue-500/10", border: "border-blue-500/30", text: "text-blue-400", badge: "bg-blue-500/20 text-blue-300" };
 
 const modeColor = (mode: string) => {
-  if (mode === "cash")   return "text-green-400 bg-green-500/10 border-green-500/20";
-  if (mode === "card")   return "text-blue-400 bg-blue-500/10 border-blue-500/20";
-  if (mode === "online") return "text-purple-400 bg-purple-500/10 border-purple-500/20";
-  return "text-orange-400 bg-orange-500/10 border-orange-500/20";
+  if (mode === "cash")    return "text-green-400 bg-green-500/10 border-green-500/20";
+  if (mode === "digital") return "text-blue-400 bg-blue-500/10 border-blue-500/20";
+  if (mode === "credit")  return "text-orange-400 bg-orange-500/10 border-orange-500/20";
+  return "text-muted-foreground bg-muted/10 border-border/20";
+};
+
+const modeLabel = (mode: string, sub?: string | null) => {
+  if (mode === "cash") return "Cash";
+  if (mode === "credit") return "Credit";
+  if (mode === "digital") {
+    const labels: Record<string, string> = { upi: "UPI", phonepe: "PhonePe", card: "Card", bank_transfer: "Bank", bhim: "BHIM" };
+    return sub ? labels[sub] ?? "Digital" : "Digital";
+  }
+  return mode;
 };
 
 // ─── Step indicator ───────────────────────────────────────────────────────────
@@ -86,8 +96,9 @@ export default function NozzleEntry() {
 
   // Collection form state
   const [collAmount, setCollAmount] = useState("");
-  const [collMode, setCollMode] = useState<"cash" | "card" | "online" | "credit">("cash");
-  const [collNozzle, setCollNozzle] = useState<string>("all");
+  const [collMode, setCollMode] = useState<"cash" | "digital" | "credit">("cash");
+  const [collDigitalSub, setCollDigitalSub] = useState<"upi" | "phonepe" | "card" | "bank_transfer" | "bhim">("upi");
+  const [collNozzle, setCollNozzle] = useState<string>("");   // mandatory — no default
   const [collCustomer, setCollCustomer] = useState("");
   const [collNotes, setCollNotes] = useState("");
 
@@ -183,11 +194,15 @@ export default function NozzleEntry() {
     if (!collAmount || isNaN(Number(collAmount)) || Number(collAmount) <= 0) {
       return toast.error("Enter a valid amount");
     }
+    if (!collNozzle) {
+      return toast.error("Please select a nozzle");
+    }
     addCollection.mutate({
       sessionId,
-      nozzleId: collNozzle !== "all" ? Number(collNozzle) : undefined,
+      nozzleId: Number(collNozzle),
       amount: Number(collAmount),
       paymentMode: collMode,
+      digitalSubType: collMode === "digital" ? collDigitalSub : undefined,
       customerName: collCustomer || undefined,
       notes: collNotes || undefined,
     });
@@ -229,12 +244,12 @@ export default function NozzleEntry() {
 
   // ── Derived values ───────────────────────────────────────────────────────
   const collectionTotals = useMemo(() => {
-    if (!collections) return { cash: 0, card: 0, online: 0, credit: 0, total: 0 };
+    if (!collections) return { cash: 0, digital: 0, credit: 0, total: 0 };
     return collections.reduce((acc: any, c: any) => {
       acc[c.paymentMode] = (acc[c.paymentMode] ?? 0) + Number(c.amount);
       acc.total += Number(c.amount);
       return acc;
-    }, { cash: 0, card: 0, online: 0, credit: 0, total: 0 });
+    }, { cash: 0, digital: 0, credit: 0, total: 0 });
   }, [collections]);
 
   const liveVolumes = useMemo(() => {
@@ -392,12 +407,11 @@ export default function NozzleEntry() {
       {/* ── Step 2: Collections ───────────────────────────────────────────── */}
       {step === 2 && (
         <div className="space-y-4">
-          {/* Live totals bar */}
-          <div className="grid grid-cols-4 gap-2">
+          {/* Live totals bar — 3 modes */}
+          <div className="grid grid-cols-3 gap-2">
             {[
               { label: "Cash", value: collectionTotals.cash, color: "text-green-400 bg-green-500/10 border-green-500/20" },
-              { label: "Card", value: collectionTotals.card, color: "text-blue-400 bg-blue-500/10 border-blue-500/20" },
-              { label: "Online", value: collectionTotals.online, color: "text-purple-400 bg-purple-500/10 border-purple-500/20" },
+              { label: "Digital", value: collectionTotals.digital, color: "text-blue-400 bg-blue-500/10 border-blue-500/20" },
               { label: "Credit", value: collectionTotals.credit, color: "text-orange-400 bg-orange-500/10 border-orange-500/20" },
             ].map(item => (
               <div key={item.label} className={`p-3 rounded-xl border text-center ${item.color}`}>
@@ -416,47 +430,85 @@ export default function NozzleEntry() {
               </CardTitle>
             </CardHeader>
             <CardContent className="px-5 pb-4 space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Amount (₹)</Label>
-                  <Input
-                    type="number"
-                    placeholder="0.00"
-                    value={collAmount}
-                    onChange={e => setCollAmount(e.target.value)}
-                    className="bg-secondary border-border/50 tabular-nums text-lg font-semibold"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Payment Mode</Label>
-                  <div className="grid grid-cols-2 gap-1">
-                    {(["cash", "card", "online", "credit"] as const).map(m => (
+
+              {/* Nozzle selection — mandatory tap buttons */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Nozzle <span className="text-red-400">*</span></Label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {nozzles?.map(n => {
+                    const c = fuelColor(n.fuelType);
+                    return (
                       <button
-                        key={m}
-                        onClick={() => setCollMode(m)}
-                        className={`py-1.5 px-2 rounded-lg border text-[11px] font-medium transition-all capitalize
-                          ${collMode === m ? "bg-primary text-primary-foreground border-primary" : "bg-secondary border-border/50 text-muted-foreground"}`}
+                        key={n.id}
+                        onClick={() => setCollNozzle(String(n.id))}
+                        className={`py-2 px-3 rounded-lg border text-xs font-medium transition-all flex items-center gap-1.5
+                          ${collNozzle === String(n.id) ? `${c.bg} ${c.border} ${c.text}` : "bg-secondary border-border/50 text-muted-foreground hover:border-primary/40"}`}
                       >
-                        {m}
+                        <Fuel className="w-3 h-3" />{n.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Amount */}
+              <div className="space-y-1.5">
+                <Label className="text-xs">Amount (₹)</Label>
+                <Input
+                  type="number"
+                  placeholder="0.00"
+                  value={collAmount}
+                  onChange={e => setCollAmount(e.target.value)}
+                  className="bg-secondary border-border/50 tabular-nums text-lg font-semibold"
+                />
+              </div>
+
+              {/* Payment mode — 3 large tap buttons */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Payment Mode</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { mode: "cash" as const, label: "Cash", icon: "💵" },
+                    { mode: "digital" as const, label: "Digital", icon: "📱" },
+                    { mode: "credit" as const, label: "Credit", icon: "📋" },
+                  ]).map(({ mode, label, icon }) => (
+                    <button
+                      key={mode}
+                      onClick={() => setCollMode(mode)}
+                      className={`py-3 px-2 rounded-xl border text-xs font-semibold transition-all flex flex-col items-center gap-1
+                        ${collMode === mode ? "bg-primary text-primary-foreground border-primary" : "bg-secondary border-border/50 text-muted-foreground hover:border-primary/40"}`}
+                    >
+                      <span className="text-base">{icon}</span>{label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Digital sub-type — shown only when Digital is selected */}
+              {collMode === "digital" && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Digital Payment Type</Label>
+                  <div className="grid grid-cols-5 gap-1">
+                    {([
+                      { sub: "upi" as const, label: "UPI" },
+                      { sub: "phonepe" as const, label: "PhonePe" },
+                      { sub: "card" as const, label: "Card" },
+                      { sub: "bank_transfer" as const, label: "Bank" },
+                      { sub: "bhim" as const, label: "BHIM" },
+                    ]).map(({ sub, label }) => (
+                      <button
+                        key={sub}
+                        onClick={() => setCollDigitalSub(sub)}
+                        className={`py-1.5 px-1 rounded-lg border text-[10px] font-medium transition-all
+                          ${collDigitalSub === sub ? "bg-blue-500/20 text-blue-300 border-blue-500/40" : "bg-secondary border-border/50 text-muted-foreground hover:border-blue-500/30"}`}
+                      >
+                        {label}
                       </button>
                     ))}
                   </div>
                 </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Nozzle (optional)</Label>
-                <Select value={collNozzle} onValueChange={setCollNozzle}>
-                  <SelectTrigger className="bg-secondary border-border/50">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Nozzles / General</SelectItem>
-                    {nozzles?.map(n => (
-                      <SelectItem key={n.id} value={String(n.id)}>{n.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              )}
+
               {collMode === "credit" && (
                 <div className="space-y-1.5">
                   <Label className="text-xs">Customer Name</Label>
@@ -501,9 +553,16 @@ export default function NozzleEntry() {
                 {collections.map((c: any) => (
                   <div key={c.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
                     <div className="flex items-center gap-2">
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border capitalize ${modeColor(c.paymentMode)}`}>
-                        {c.paymentMode}
-                      </span>
+                      <div className="flex flex-col gap-0.5">
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${modeColor(c.paymentMode)}`}>
+                          {modeLabel(c.paymentMode, c.digitalSubType)}
+                        </span>
+                        {c.nozzleId && nozzles && (
+                          <span className="text-[9px] text-muted-foreground/60 px-1">
+                            {nozzles.find((n: any) => n.id === c.nozzleId)?.label ?? ""}
+                          </span>
+                        )}
+                      </div>
                       <div>
                         <p className="text-sm font-semibold tabular-nums">
                           ₹{Number(c.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
@@ -656,18 +715,19 @@ export default function NozzleEntry() {
                 </div>
               </div>
 
-              {/* Collections */}
+              {/* Collections — Cash / Digital / Credit */}
               <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Collections</p>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Collections by Payment Mode</p>
                 <div className="space-y-2">
                   {[
-                    { label: "Cash", value: collectionTotals.cash, color: "text-green-400" },
-                    { label: "Card / POS", value: collectionTotals.card, color: "text-blue-400" },
-                    { label: "Online / UPI", value: collectionTotals.online, color: "text-purple-400" },
-                    { label: "Credit Sales", value: collectionTotals.credit, color: "text-orange-400" },
+                    { label: "Cash", value: collectionTotals.cash, color: "text-green-400", icon: "💵" },
+                    { label: "Digital (UPI / PhonePe / Card / Bank / BHIM)", value: collectionTotals.digital, color: "text-blue-400", icon: "📱" },
+                    { label: "Credit Sales", value: collectionTotals.credit, color: "text-orange-400", icon: "📋" },
                   ].map(item => (
                     <div key={item.label} className="flex items-center justify-between py-1.5 border-b border-border/20 last:border-0">
-                      <span className="text-sm text-muted-foreground">{item.label}</span>
+                      <span className="text-sm text-muted-foreground flex items-center gap-1.5">
+                        <span>{item.icon}</span>{item.label}
+                      </span>
                       <div className="text-right">
                         <span className={`text-sm font-semibold tabular-nums ${item.color}`}>{fmtCompact(item.value)}</span>
                         <p className="text-[10px] text-muted-foreground/50 tabular-nums">{fmtFull(item.value)}</p>
@@ -683,6 +743,49 @@ export default function NozzleEntry() {
                   </div>
                 </div>
               </div>
+
+              {/* Per-nozzle cash breakdown */}
+              {collections && collections.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Cash by Nozzle</p>
+                  <div className="space-y-1.5">
+                    {nozzles?.map(n => {
+                      const nozzleCash = collections
+                        .filter((c: any) => c.nozzleId === n.id && c.paymentMode === "cash")
+                        .reduce((sum: number, c: any) => sum + Number(c.amount), 0);
+                      const nozzleDigital = collections
+                        .filter((c: any) => c.nozzleId === n.id && c.paymentMode === "digital")
+                        .reduce((sum: number, c: any) => sum + Number(c.amount), 0);
+                      const nozzleCredit = collections
+                        .filter((c: any) => c.nozzleId === n.id && c.paymentMode === "credit")
+                        .reduce((sum: number, c: any) => sum + Number(c.amount), 0);
+                      const fc = fuelColor(n.fuelType);
+                      return (
+                        <div key={n.id} className={`p-3 rounded-xl border ${fc.bg} ${fc.border}`}>
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <Fuel className={`w-3.5 h-3.5 ${fc.text}`} />
+                            <span className={`text-xs font-semibold ${fc.text}`}>{n.label}</span>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2 text-center">
+                            <div>
+                              <p className="text-[9px] text-muted-foreground">Cash</p>
+                              <p className="text-xs font-bold text-green-400 tabular-nums">{fmtCompact(nozzleCash)}</p>
+                            </div>
+                            <div>
+                              <p className="text-[9px] text-muted-foreground">Digital</p>
+                              <p className="text-xs font-bold text-blue-400 tabular-nums">{fmtCompact(nozzleDigital)}</p>
+                            </div>
+                            <div>
+                              <p className="text-[9px] text-muted-foreground">Credit</p>
+                              <p className="text-xs font-bold text-orange-400 tabular-nums">{fmtCompact(nozzleCredit)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Variance */}
               <div className={`p-4 rounded-xl border ${Math.abs(variance) < 500 ? "bg-green-500/5 border-green-500/20" : "bg-red-500/5 border-red-500/20"}`}>

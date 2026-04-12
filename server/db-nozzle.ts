@@ -213,7 +213,8 @@ export async function addCashCollection(data: {
   sessionId: number;
   nozzleId?: number;
   amount: number;
-  paymentMode: "cash" | "card" | "online" | "credit";
+  paymentMode: "cash" | "digital" | "credit";
+  digitalSubType?: "upi" | "phonepe" | "card" | "bank_transfer" | "bhim";
   customerId?: number;
   customerName?: string;
   notes?: string;
@@ -225,6 +226,7 @@ export async function addCashCollection(data: {
     nozzleId: data.nozzleId ?? null,
     amount: String(data.amount),
     paymentMode: data.paymentMode,
+    digitalSubType: data.digitalSubType ?? null,
     customerId: data.customerId ?? null,
     customerName: data.customerName ?? null,
     notes: data.notes ?? null,
@@ -285,16 +287,34 @@ export async function getSessionSummary(sessionId: number) {
     });
   }
 
-  // Compute collection totals
-  let totalCash = 0, totalCard = 0, totalOnline = 0, totalCredit = 0;
+  // Compute collection totals by new payment modes
+  let totalCash = 0, totalDigital = 0, totalCredit = 0;
+  // Digital sub-type breakdown
+  const digitalBreakdown: Record<string, number> = { upi: 0, phonepe: 0, card: 0, bank_transfer: 0, bhim: 0 };
   for (const c of collections) {
     const amt = Number(c.amount);
-    if (c.paymentMode === "cash")   totalCash   += amt;
-    if (c.paymentMode === "card")   totalCard   += amt;
-    if (c.paymentMode === "online") totalOnline += amt;
-    if (c.paymentMode === "credit") totalCredit += amt;
+    if (c.paymentMode === "cash")    totalCash    += amt;
+    if (c.paymentMode === "digital") {
+      totalDigital += amt;
+      const sub = (c as any).digitalSubType ?? "upi";
+      if (sub in digitalBreakdown) digitalBreakdown[sub] += amt;
+    }
+    if (c.paymentMode === "credit")  totalCredit  += amt;
   }
-  const totalCollected = totalCash + totalCard + totalOnline + totalCredit;
+  const totalCollected = totalCash + totalDigital + totalCredit;
+
+  // Per-nozzle payment breakdown
+  const nozzlePayments = new Map<number, { cash: number; digital: number; credit: number }>();
+  for (const c of collections) {
+    if (!c.nozzleId) continue;
+    const nid = c.nozzleId;
+    if (!nozzlePayments.has(nid)) nozzlePayments.set(nid, { cash: 0, digital: 0, credit: 0 });
+    const np = nozzlePayments.get(nid)!;
+    const amt = Number(c.amount);
+    if (c.paymentMode === "cash")    np.cash    += amt;
+    if (c.paymentMode === "digital") np.digital += amt;
+    if (c.paymentMode === "credit")  np.credit  += amt;
+  }
 
   // Compute expected sales value from volumes
   const PETROL_PRICE = 103.41; // ₹/L (approximate retail price)
@@ -302,19 +322,30 @@ export async function getSessionSummary(sessionId: number) {
   const expectedSalesValue = totalPetrolLitres * PETROL_PRICE + totalDieselLitres * DIESEL_PRICE;
   const variance = totalCollected - expectedSalesValue;
 
+  // Merge payment breakdown into nozzle summaries
+  const nozzleSummariesWithPayments = nozzleSummaries
+    .sort((a, b) => (a.nozzleNumber ?? 0) - (b.nozzleNumber ?? 0))
+    .map(ns => ({
+      ...ns,
+      payments: nozzlePayments.get(ns.nozzleId) ?? { cash: 0, digital: 0, credit: 0 },
+    }));
+
   return {
     sessionId,
-    nozzleSummaries: nozzleSummaries.sort((a, b) => (a.nozzleNumber ?? 0) - (b.nozzleNumber ?? 0)),
+    nozzleSummaries: nozzleSummariesWithPayments,
     totalPetrolLitres,
     totalDieselLitres,
     totalCash,
-    totalCard,
-    totalOnline,
+    totalDigital,
+    digitalBreakdown,
     totalCredit,
     totalCollected,
     expectedSalesValue,
     variance,
     collections,
+    // backward-compat aliases
+    totalCard: 0,
+    totalOnline: 0,
   };
 }
 
@@ -325,22 +356,21 @@ export async function computeDayReconciliation(shiftDate: string) {
   const sessions = await getSessionsForDate(shiftDate);
 
   let totalPetrol = 0, totalDiesel = 0;
-  let totalCash = 0, totalCard = 0, totalOnline = 0, totalCredit = 0;
+  let totalCash = 0, totalDigital = 0, totalCredit = 0;
 
   for (const session of sessions) {
     const summary = await getSessionSummary(session.id);
-    totalPetrol  += summary.totalPetrolLitres;
-    totalDiesel  += summary.totalDieselLitres;
-    totalCash    += summary.totalCash;
-    totalCard    += summary.totalCard;
-    totalOnline  += summary.totalOnline;
-    totalCredit  += summary.totalCredit;
+    totalPetrol   += summary.totalPetrolLitres;
+    totalDiesel   += summary.totalDieselLitres;
+    totalCash     += summary.totalCash;
+    totalDigital  += summary.totalDigital;
+    totalCredit   += summary.totalCredit;
   }
 
   const PETROL_PRICE = 103.41;
   const DIESEL_PRICE = 89.14;
   const totalSalesValue = totalPetrol * PETROL_PRICE + totalDiesel * DIESEL_PRICE;
-  const totalCollected = totalCash + totalCard + totalOnline + totalCredit;
+  const totalCollected = totalCash + totalDigital + totalCredit;
   const variance = totalCollected - totalSalesValue;
   const status = Math.abs(variance) < 1 ? "balanced" : (Math.abs(variance) < 500 ? "balanced" : "discrepancy");
 
@@ -356,8 +386,8 @@ export async function computeDayReconciliation(shiftDate: string) {
     totalDieselLitres: String(totalDiesel.toFixed(2)),
     totalSalesValue: String(totalSalesValue.toFixed(2)),
     totalCashCollected: String(totalCash.toFixed(2)),
-    totalCardCollected: String(totalCard.toFixed(2)),
-    totalOnlineCollected: String(totalOnline.toFixed(2)),
+    totalCardCollected: String(totalDigital.toFixed(2)),   // digital maps to card column
+    totalOnlineCollected: "0.00",
     totalCreditSales: String(totalCredit.toFixed(2)),
     variance: String(variance.toFixed(2)),
     status: status as "pending" | "balanced" | "discrepancy",

@@ -316,3 +316,31 @@
 - [x] Dashboard header subtitle: now uses STATION_SHORT_NAME from shared/const.ts
 - [x] DashboardLayout station card: now uses STATION_SHORT_NAME + STATION_ADDRESS from shared/const.ts
 - [x] About page is the source of truth — all three locations share the same constants
+
+## Nozzle Per-Sale Transaction Logging (Mode 1)
+- [ ] DB: nozzle_transactions table (id, sessionId, nozzleId, transactionTime, litres, amount, paymentMode: cash|upi|phonepe|card|credit, receiptImageUrl, aiExtracted, notes, createdBy)
+- [ ] DB: migrate and apply
+- [ ] tRPC: logTransaction (manual entry — nozzleId, litres, amount, paymentMode, sessionId)
+- [ ] tRPC: scanSaleReceipt (upload image → AI extracts nozzle, litres, amount → return for confirmation)
+- [ ] tRPC: getTransactionsBySession (list all transactions for a shift session)
+- [ ] tRPC: getNozzleCashSummary (per-nozzle breakdown: cash, upi, phonepe, card, credit totals)
+- [ ] tRPC: deleteTransaction (soft delete with reason)
+- [ ] UI: Sale Entry page (/sale-entry) — mobile-first, camera/upload → AI extract → payment tap → confirm → save
+- [ ] UI: Active session transaction list — running total per payment mode, per nozzle
+- [ ] UI: Nozzle Entry session summary — replace shift-level cash fields with transaction-derived totals
+- [ ] UI: Reconciliation — use transaction totals for cash/electronic breakdown
+- [ ] Add Sale Entry to sidebar nav under Operations
+- [ ] Tests: transaction logging, payment mode aggregation, nozzle cash summary
+
+## Nozzle Payment Mode Upgrade (Cash / Digital / Credit)
+- [ ] DB: ALTER cash_collections.payment_mode enum to cash|digital|credit (keep old values for migration)
+- [ ] DB: ADD digital_sub_type column varchar(20): upi|phonepe|card|bank_transfer|bhim (nullable, only for digital)
+- [ ] DB: migrate and apply
+- [ ] tRPC: update addCollection input schema — paymentMode: cash|digital|credit, digitalSubType optional
+- [ ] tRPC: update getCollections return to include digitalSubType
+- [ ] tRPC: add getNozzleCashSummary procedure — per-nozzle: cash total, digital total (with sub-type breakdown), credit total
+- [ ] UI: Nozzle Entry Step 3 — replace dropdown nozzle selector with mandatory tap buttons per nozzle
+- [ ] UI: Payment mode as 3 large tap buttons: Cash / Digital / Credit
+- [ ] UI: When Digital selected — show sub-type row: UPI | PhonePe | Card | Bank Transfer | BHIM
+- [ ] UI: Session summary Step 5 — per-nozzle table: Cash | Digital | Credit columns with totals
+- [ ] UI: Session summary — highlight cash column (green) for easy physical count verification
