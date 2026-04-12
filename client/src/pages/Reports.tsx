@@ -123,8 +123,8 @@ export default function Reports() {
           <p className="text-xs text-muted-foreground mt-0.5">Gross Profit</p>
         </CardContent></Card>
         <Card className="bg-card border-border/50"><CardContent className="p-5">
-          <div className="w-9 h-9 rounded-lg border border-amber-500/20 bg-amber-500/10 flex items-center justify-center mb-3"><BarChart2 className="w-4 h-4 text-amber-400" /></div>
-          <p className={`text-xl font-bold tabular-nums ${Number(profitMargin) >= 0 ? "text-amber-400" : "text-red-400"}`}>{isLoading ? "—" : profitMargin + "%"}</p>
+          <div className="w-9 h-9 rounded-lg border border-teal-500/20 bg-teal-500/10 flex items-center justify-center mb-3"><BarChart2 className="w-4 h-4 text-teal-400" /></div>
+          <p className={`text-xl font-bold tabular-nums ${Number(profitMargin) >= 0 ? "text-teal-400" : "text-red-400"}`}>{isLoading ? "—" : profitMargin + "%"}</p>
           <p className="text-xs text-muted-foreground mt-0.5">Net Margin</p>
         </CardContent></Card>
       </div>

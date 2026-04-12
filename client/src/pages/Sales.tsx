@@ -384,7 +384,7 @@ export default function Sales() {
                         <Badge className={`text-[10px] ${
                           status === "reconciled"  ? "bg-green-500/15 text-green-400 border-green-500/20" :
                           status === "discrepancy" ? "bg-red-500/15 text-red-400 border-red-500/20" :
-                          "bg-amber-500/15 text-amber-400 border-amber-500/20"
+                          "bg-teal-500/15 text-teal-400 border-teal-500/20"
                         }`}>
                           {status}
                         </Badge>

@@ -167,7 +167,7 @@ export default function Dashboard() {
           <h2 className="text-2xl font-bold tracking-tight">Good morning, Kranthi</h2>
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-sm text-muted-foreground">{format(new Date(latestDataDate + 'T00:00:00'), "EEEE, d MMMM yyyy")} · {STATION_SHORT_NAME}</p>
-            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">Data: Apr 2025 – Mar 2026</span>
+            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-400 border border-teal-500/20">Data: Apr 2025 – Mar 2026</span>
           </div>
         </div>
         <div className="flex flex-col items-end gap-2">
@@ -227,7 +227,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard label="Total Sales" value={isLoading ? "—" : fmtCompact(totalSales)} rawValue={isLoading ? undefined : totalSales} sub={period === "today" ? "31 Mar 2026" : period === "week" ? "25–31 Mar 2026" : period === "ytd" ? "Apr 2025 – Mar 2026" : period === "custom" ? `${appliedFrom} – ${appliedTo}` : "Mar 2026"} icon={IndianRupee} trend="up" trendVal="+8.2%" colorClass="text-primary bg-primary/10 border-primary/20" />
-        <StatCard label="Gross Profit" value={isLoading ? "—" : fmtCompact(grossProfit)} rawValue={isLoading ? undefined : grossProfit} sub={`Fuel margin earned`} icon={TrendingUp} colorClass="text-amber-400 bg-amber-500/10 border-amber-500/20" />
+        <StatCard label="Gross Profit" value={isLoading ? "—" : fmtCompact(grossProfit)} rawValue={isLoading ? undefined : grossProfit} sub={`Fuel margin earned`} icon={TrendingUp} colorClass="text-teal-400 bg-teal-500/10 border-teal-500/20" />
         <StatCard label="Expenses" value={isLoading ? "—" : fmtCompact(totalExpenses)} rawValue={isLoading ? undefined : totalExpenses} sub="Operating costs" icon={Package} trend={totalExpenses > grossProfit * 0.5 ? "down" : undefined} colorClass="text-red-400 bg-red-500/10 border-red-500/20" />
         <StatCard label="Net Profit" value={isLoading ? "—" : fmtCompact(netProfit)} rawValue={isLoading ? undefined : netProfit} sub={`Margin: ${netMargin}% • Gross − Expenses`} icon={TrendingUp} trend={netProfit >= 0 ? "up" : "down"} trendVal={`${netMargin}%`} colorClass={netProfit >= 0 ? "text-green-400 bg-green-500/10 border-green-500/20" : "text-red-400 bg-red-500/10 border-red-500/20"} />
         <StatCard label="Outstanding" value={isLoading ? "—" : fmtCompact(totalReceivables)} rawValue={isLoading ? undefined : totalReceivables} sub={`Collection: ${collectionRate}%`} icon={CreditCard} trend={totalReceivables > 500000 ? "down" : "up"} trendVal={`${collectionRate}%`} colorClass={totalReceivables > 500000 ? "text-red-400 bg-red-500/10 border-red-500/20" : "text-green-400 bg-green-500/10 border-green-500/20"} />
@@ -241,7 +241,7 @@ export default function Dashboard() {
               <Fuel className="w-4 h-4 text-primary" /> Fuel Intelligence
               {fuelIntel?.dataQuality.hasDipReadings
                 ? <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-green-500/15 text-green-400 border border-green-500/20">Dip Readings Active</span>
-                : <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/20">Estimated Stock</span>
+                : <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-teal-500/15 text-teal-400 border border-teal-500/20">Estimated Stock</span>
               }
             </CardTitle>
             <a href="/nozzle-entry" className="text-[11px] text-muted-foreground hover:text-primary transition-colors flex items-center gap-1">
@@ -252,7 +252,7 @@ export default function Dashboard() {
         <CardContent className="px-5 pb-4 space-y-3">
           {(["petrol", "diesel"] as const).map((ft) => {
             const d = ft === "petrol" ? fuelIntel?.petrol : fuelIntel?.diesel;
-            const color = ft === "petrol" ? "amber" : "blue";
+            const color = ft === "petrol" ? "teal" : "blue";
             const grossM = d?.grossMarginPerL ?? (ft === "petrol" ? 3.95 : 2.49);
             const effM = d?.effectiveMarginPerL ?? grossM;
             const evapL = d?.evaporationLitres ?? 0;
@@ -273,13 +273,13 @@ export default function Dashboard() {
             const opexBreakdown = d?.opexBreakdown ?? [];
             return (
               <div key={ft} className={`p-3 rounded-lg border ${
-                color === "amber" ? "border-amber-500/20 bg-amber-500/5" : "border-blue-500/20 bg-blue-500/5"
+                color === "teal" ? "border-teal-500/20 bg-teal-500/5" : "border-blue-500/20 bg-blue-500/5"
               }`}>
                 {/* Header row */}
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <Fuel className={`w-4 h-4 ${color === "amber" ? "text-amber-400" : "text-blue-400"}`} />
-                    <span className={`text-sm font-semibold capitalize ${color === "amber" ? "text-amber-400" : "text-blue-400"}`}>{ft}</span>
+                    <Fuel className={`w-4 h-4 ${color === "teal" ? "text-teal-400" : "text-blue-400"}`} />
+                    <span className={`text-sm font-semibold capitalize ${color === "teal" ? "text-teal-400" : "text-blue-400"}`}>{ft}</span>
                   </div>
                   <div className="text-right">
                     <div className="flex items-center gap-2 justify-end">
@@ -288,7 +288,7 @@ export default function Dashboard() {
                         <p className="text-[9px] text-muted-foreground/60">Gross</p>
                       </div>
                       <div className="text-right">
-                        <p className={`text-base font-bold tabular-nums ${netM >= 0 ? (color === "amber" ? "text-amber-400" : "text-blue-400") : "text-red-400"}`}>₹{netM.toFixed(2)}/L</p>
+                        <p className={`text-base font-bold tabular-nums ${netM >= 0 ? (color === "teal" ? "text-teal-400" : "text-blue-400") : "text-red-400"}`}>₹{netM.toFixed(2)}/L</p>
                         <p className="text-[10px] text-muted-foreground">Net margin</p>
                       </div>
                     </div>
@@ -306,7 +306,7 @@ export default function Dashboard() {
                   </div>
                   <div className="text-center p-1.5 rounded bg-card/50">
                     <p className="text-[10px] text-muted-foreground">Margin %</p>
-                    <p className={`text-xs font-semibold tabular-nums ${color === "amber" ? "text-amber-400" : "text-blue-400"}`}>{marginPct.toFixed(2)}%</p>
+                    <p className={`text-xs font-semibold tabular-nums ${color === "teal" ? "text-teal-400" : "text-blue-400"}`}>{marginPct.toFixed(2)}%</p>
                   </div>
                 </div>
                 {/* OpEx deduction row */}
@@ -337,7 +337,7 @@ export default function Dashboard() {
                       }
                       {stockL !== null && (
                         <div className="mt-0.5 h-1 rounded-full bg-muted/30 overflow-hidden">
-                          <div className={`h-full rounded-full ${color === "amber" ? "bg-amber-400/60" : "bg-blue-400/60"}`} style={{ width: `${Math.min(100, stockPct)}%` }} />
+                          <div className={`h-full rounded-full ${color === "teal" ? "bg-teal-400/60" : "bg-blue-400/60"}`} style={{ width: `${Math.min(100, stockPct)}%` }} />
                         </div>
                       )}
                     </div>
@@ -383,9 +383,9 @@ export default function Dashboard() {
           </div>
           {/* Data quality notice */}
           {!fuelIntel?.dataQuality.hasDipReadings && (
-            <div className="flex items-start gap-2 p-2.5 rounded-lg border border-amber-500/20 bg-amber-500/5">
-              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
-              <p className="text-[11px] text-amber-400/80">No dip readings recorded for this period. Stock values are estimated. Enter daily dip readings via <a href="/nozzle-entry" className="underline hover:text-amber-300">Nozzle Entry</a> for accurate stock valuation.</p>
+            <div className="flex items-start gap-2 p-2.5 rounded-lg border border-teal-500/20 bg-teal-500/5">
+              <AlertTriangle className="w-3.5 h-3.5 text-teal-400 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-teal-400/80">No dip readings recorded for this period. Stock values are estimated. Enter daily dip readings via <a href="/nozzle-entry" className="underline hover:text-teal-300">Nozzle Entry</a> for accurate stock valuation.</p>
             </div>
           )}
         </CardContent>
@@ -415,9 +415,9 @@ export default function Dashboard() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {/* Petrol */}
-              <div className="group p-4 rounded-lg border border-amber-500/20 bg-amber-500/5 space-y-2">
+              <div className="group p-4 rounded-lg border border-teal-500/20 bg-teal-500/5 space-y-2">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-amber-400">
+                  <div className="flex items-center gap-2 text-teal-400">
                     <Fuel className="w-4 h-4" />
                     <span className="text-sm font-semibold">Petrol (MS)</span>
                   </div>
@@ -427,10 +427,10 @@ export default function Dashboard() {
                     </span>
                   )}
                 </div>
-                <p className="text-xl font-bold tabular-nums text-amber-400">{fmtCompact(totalPurchasePetrol)}</p>
+                <p className="text-xl font-bold tabular-nums text-teal-400">{fmtCompact(totalPurchasePetrol)}</p>
                 <p className="text-[11px] tabular-nums text-muted-foreground/40 group-hover:text-muted-foreground/70 transition-colors duration-150">{fmtFull(totalPurchasePetrol)}</p>
                 <div className="w-full bg-muted/30 rounded-full h-1.5">
-                  <div className="h-1.5 rounded-full bg-amber-400/70" style={{ width: `${Math.min(100,(totalPurchasePetrol/totalPurchase)*100).toFixed(1)}%` }} />
+                  <div className="h-1.5 rounded-full bg-teal-400/70" style={{ width: `${Math.min(100,(totalPurchasePetrol/totalPurchase)*100).toFixed(1)}%` }} />
                 </div>
                 <p className="text-[10px] text-muted-foreground">{((totalPurchasePetrol/totalPurchase)*100).toFixed(1)}% of total</p>
               </div>
@@ -564,10 +564,10 @@ export default function Dashboard() {
           <CardHeader className="pb-3 pt-4 px-5">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Package className="w-4 h-4 text-amber-400" /> Inventory Alerts
+                <Package className="w-4 h-4 text-teal-400" /> Inventory Alerts
               </CardTitle>
               {lowStock && lowStock.length > 0 && (
-                <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/20 text-[10px]">{lowStock.length} low</Badge>
+                <Badge className="bg-teal-500/15 text-teal-400 border-teal-500/20 text-[10px]">{lowStock.length} low</Badge>
               )}
             </div>
           </CardHeader>
@@ -579,7 +579,7 @@ export default function Dashboard() {
                   <p className="text-xs text-muted-foreground">{item.category}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-semibold tabular-nums text-amber-400">{item.currentStock} {item.unit}</p>
+                  <p className="text-sm font-semibold tabular-nums text-teal-400">{item.currentStock} {item.unit}</p>
                   <p className="text-[10px] text-muted-foreground">Min: {item.minStockLevel} {item.unit}</p>
                 </div>
               </div>

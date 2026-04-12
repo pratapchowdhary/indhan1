@@ -24,7 +24,7 @@ function PriceEntryCard({
   onSaved,
 }: {
   fuelType: "petrol" | "diesel";
-  color: "amber" | "blue";
+  color: "teal" | "blue";
   label: string;
   onSaved: () => void;
 }) {
@@ -52,12 +52,12 @@ function PriceEntryCard({
   const marginPct = margin !== null && retail > 0 ? ((margin / retail) * 100).toFixed(2) : null;
 
   const colorClasses = {
-    amber: {
-      border: "border-amber-500/30",
-      bg: "bg-amber-500/5",
-      text: "text-amber-400",
-      badge: "bg-amber-500/15 text-amber-400 border-amber-500/30",
-      btn: "bg-amber-500 hover:bg-amber-600 text-white",
+    teal: {
+      border: "border-teal-500/30",
+      bg: "bg-teal-500/5",
+      text: "text-teal-400",
+      badge: "bg-teal-500/15 text-teal-400 border-teal-500/30",
+      btn: "bg-teal-600 hover:bg-teal-700 text-white",
     },
     blue: {
       border: "border-blue-500/30",
@@ -209,12 +209,12 @@ export default function FuelPrices() {
       {(latestPetrol || latestDiesel) && (
         <div className="grid grid-cols-2 gap-4">
           {[
-            { data: latestPetrol, trend: petrolTrend, label: "Petrol (MS)", color: "amber" as const },
+            { data: latestPetrol, trend: petrolTrend, label: "Petrol (MS)", color: "teal" as const },
             { data: latestDiesel, trend: dieselTrend, label: "Diesel (HSD)", color: "blue" as const },
           ].map(({ data, trend, label, color }) => {
             if (!data) return null;
-            const colorCls = color === "amber"
-              ? { text: "text-amber-400", border: "border-amber-500/20", bg: "bg-amber-500/5" }
+            const colorCls = color === "teal"
+              ? { text: "text-teal-400", border: "border-teal-500/20", bg: "bg-teal-500/5" }
               : { text: "text-blue-400", border: "border-blue-500/20", bg: "bg-blue-500/5" };
             return (
               <Card key={label} className={`border ${colorCls.border} ${colorCls.bg}`}>
@@ -265,7 +265,7 @@ export default function FuelPrices() {
 
       {/* Entry Forms */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <PriceEntryCard fuelType="petrol" color="amber" label="Petrol (MS)" onSaved={() => setRefreshKey(k => k + 1)} />
+        <PriceEntryCard fuelType="petrol" color="teal" label="Petrol (MS)" onSaved={() => setRefreshKey(k => k + 1)} />
         <PriceEntryCard fuelType="diesel" color="blue" label="Diesel (HSD)" onSaved={() => setRefreshKey(k => k + 1)} />
       </div>
 
@@ -312,7 +312,7 @@ export default function FuelPrices() {
                       <tr key={row.id} className="border-b border-border/20 hover:bg-muted/10 transition-colors">
                         <td className="py-2 px-2 tabular-nums">{row.priceDate}</td>
                         <td className="py-2 px-2">
-                          <span className={`font-medium capitalize ${row.fuelType === "petrol" ? "text-amber-400" : "text-blue-400"}`}>
+                          <span className={`font-medium capitalize ${row.fuelType === "petrol" ? "text-teal-400" : "text-blue-400"}`}>
                             {row.fuelType}
                           </span>
                         </td>

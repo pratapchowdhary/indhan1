@@ -19,7 +19,7 @@ const fmtCompact = (n: number) => {
 };
 
 function UtilBar({ pct }: { pct: number }) {
-  const color = pct > 80 ? "#ef4444" : pct > 60 ? "#f59e0b" : "#22c55e";
+  const color = pct > 80 ? "#ef4444" : pct > 60 ? "#17897e" : "#22c55e";
   return (
     <div className="w-full h-2 rounded-full bg-secondary overflow-hidden">
       <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(100, pct)}%`, background: color }} />
@@ -27,7 +27,7 @@ function UtilBar({ pct }: { pct: number }) {
   );
 }
 
-const AGING_COLORS = ["#22c55e", "#f59e0b", "#f97316", "#ef4444"];
+const AGING_COLORS = ["#22c55e", "#17897e", "#f97316", "#ef4444"];
 const AGING_LABELS = ["≤30d", "31-60d", "61-90d", ">90d"];
 
 export default function Customers() {
@@ -143,8 +143,8 @@ export default function Customers() {
           </Card>
           <Card className="bg-card border-border/50">
             <CardContent className="p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-                <IndianRupee className="w-5 h-5 text-amber-400" />
+              <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center shrink-0">
+                <IndianRupee className="w-5 h-5 text-teal-400" />
               </div>
               <div>
                 <p className="text-lg font-bold tabular-nums leading-tight">{utilizationPct.toFixed(0)}%</p>
@@ -195,7 +195,7 @@ export default function Customers() {
           const outstanding = Number(c.outstandingBalance ?? 0);
           const limit = Number(c.creditLimit ?? 0);
           const utilPct = limit > 0 ? Math.min(100, (outstanding / limit) * 100) : 0;
-          const utilColor = utilPct > 80 ? "#ef4444" : utilPct > 60 ? "#f59e0b" : "#22c55e";
+          const utilColor = utilPct > 80 ? "#ef4444" : utilPct > 60 ? "#17897e" : "#22c55e";
           const initials = c.name.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
 
           return (

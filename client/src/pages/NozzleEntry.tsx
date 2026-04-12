@@ -32,7 +32,7 @@ const DIESEL_PRICE = 89.14;
 
 const fuelColor = (type: string) =>
   type === "petrol"
-    ? { bg: "bg-amber-500/10", border: "border-amber-500/30", text: "text-amber-400", badge: "bg-amber-500/20 text-amber-300" }
+    ? { bg: "bg-teal-500/10", border: "border-teal-500/30", text: "text-teal-400", badge: "bg-teal-500/20 text-teal-300" }
     : { bg: "bg-blue-500/10", border: "border-blue-500/30", text: "text-blue-400", badge: "bg-blue-500/20 text-blue-300" };
 
 const modeColor = (mode: string) => {
@@ -646,7 +646,7 @@ export default function NozzleEntry() {
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <p className="text-[10px] text-muted-foreground">Petrol Dispensed</p>
-                    <p className="font-bold text-amber-400 tabular-nums">{liveVolumes.petrol.toFixed(2)} L</p>
+                    <p className="font-bold text-teal-400 tabular-nums">{liveVolumes.petrol.toFixed(2)} L</p>
                   </div>
                   <div>
                     <p className="text-[10px] text-muted-foreground">Diesel Dispensed</p>
@@ -700,10 +700,10 @@ export default function NozzleEntry() {
               <div>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Fuel Dispensed</p>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center">
-                    <Fuel className="w-4 h-4 text-amber-400 mx-auto mb-1" />
+                  <div className="p-3 rounded-xl bg-teal-500/10 border border-teal-500/20 text-center">
+                    <Fuel className="w-4 h-4 text-teal-400 mx-auto mb-1" />
                     <p className="text-xs text-muted-foreground">Petrol</p>
-                    <p className="text-xl font-bold text-amber-400 tabular-nums">{liveVolumes.petrol.toFixed(2)} L</p>
+                    <p className="text-xl font-bold text-teal-400 tabular-nums">{liveVolumes.petrol.toFixed(2)} L</p>
                     <p className="text-[10px] text-muted-foreground/60 tabular-nums">{fmtFull(liveVolumes.petrol * PETROL_PRICE)}</p>
                   </div>
                   <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-center">

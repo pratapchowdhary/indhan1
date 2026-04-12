@@ -88,7 +88,7 @@ export default function Employees() {
           <p className="text-xs text-muted-foreground mt-0.5">Monthly Payroll</p>
         </CardContent></Card>
         <Card className="bg-card border-border/50"><CardContent className="p-5">
-          <div className="w-9 h-9 rounded-lg border border-amber-500/20 bg-amber-500/10 flex items-center justify-center mb-3"><Clock className="w-4 h-4 text-amber-400" /></div>
+          <div className="w-9 h-9 rounded-lg border border-teal-500/20 bg-teal-500/10 flex items-center justify-center mb-3"><Clock className="w-4 h-4 text-teal-400" /></div>
           <p className="text-2xl font-bold tabular-nums">3</p>
           <p className="text-xs text-muted-foreground mt-0.5">Shifts / Day</p>
         </CardContent></Card>

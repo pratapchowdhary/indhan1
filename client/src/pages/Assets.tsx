@@ -52,7 +52,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const STATUS_CONFIG = {
   operational:       { label: "Operational",       color: "bg-emerald-600", dot: "bg-emerald-400" },
-  under_maintenance: { label: "Under Maintenance",  color: "bg-amber-600",  dot: "bg-amber-400" },
+  under_maintenance: { label: "Under Maintenance",  color: "bg-teal-600",  dot: "bg-teal-400" },
   faulty:            { label: "Faulty",             color: "bg-red-600",    dot: "bg-red-400" },
   decommissioned:    { label: "Decommissioned",     color: "bg-zinc-600",   dot: "bg-zinc-400" },
   standby:           { label: "Standby",            color: "bg-blue-600",   dot: "bg-blue-400" },
@@ -78,7 +78,7 @@ function daysUntil(dateStr: string | null | undefined) {
 }
 
 function HealthBar({ score }: { score: number }) {
-  const color = score >= 80 ? "bg-emerald-500" : score >= 50 ? "bg-amber-500" : "bg-red-500";
+  const color = score >= 80 ? "bg-emerald-500" : score >= 50 ? "bg-teal-500" : "bg-red-500";
   return (
     <div className="flex items-center gap-2">
       <div className="flex-1 h-2 bg-zinc-800 rounded-full overflow-hidden">
@@ -105,7 +105,7 @@ function AddAssetDialog({ onSuccess }: { onSuccess: () => void }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-black">
+        <Button size="sm" className="bg-teal-600 hover:bg-teal-700 text-black">
           <Plus className="w-4 h-4 mr-1" /> Add Asset
         </Button>
       </DialogTrigger>
@@ -144,11 +144,11 @@ function AddAssetDialog({ onSuccess }: { onSuccess: () => void }) {
           <div><Label>Insurance Expiry</Label><Input type="date" value={form.insuranceExpiry} onChange={e => setForm(f => ({...f, insuranceExpiry: e.target.value}))} /></div>
           <div className="col-span-2">
             <Label>Health Score: {form.healthScore}%</Label>
-            <input type="range" min={0} max={100} value={form.healthScore} onChange={e => setForm(f => ({...f, healthScore: Number(e.target.value)}))} className="w-full accent-amber-500" />
+            <input type="range" min={0} max={100} value={form.healthScore} onChange={e => setForm(f => ({...f, healthScore: Number(e.target.value)}))} className="w-full accent-teal-500" />
           </div>
           <div className="col-span-2"><Label>Notes</Label><Textarea value={form.notes} onChange={e => setForm(f => ({...f, notes: e.target.value}))} rows={2} /></div>
         </div>
-        <Button className="w-full mt-2 bg-amber-500 hover:bg-amber-600 text-black" onClick={() => create.mutate(form as any)} disabled={create.isPending || !form.name}>
+        <Button className="w-full mt-2 bg-teal-600 hover:bg-teal-700 text-black" onClick={() => create.mutate(form as any)} disabled={create.isPending || !form.name}>
           {create.isPending ? "Adding..." : "Add Asset"}
         </Button>
       </DialogContent>
@@ -199,7 +199,7 @@ function AddLogDialog({ assetId, onSuccess }: { assetId: number; onSuccess: () =
           <div><Label>Invoice No.</Label><Input value={form.invoiceNo} onChange={e => setForm(f => ({...f, invoiceNo: e.target.value}))} /></div>
           <div className="col-span-2"><Label>Next Service Date</Label><Input type="date" value={form.nextServiceDate} onChange={e => setForm(f => ({...f, nextServiceDate: e.target.value}))} /></div>
         </div>
-        <Button className="w-full mt-2 bg-amber-500 hover:bg-amber-600 text-black" onClick={() => create.mutate({ assetId, ...form } as any)} disabled={create.isPending}>
+        <Button className="w-full mt-2 bg-teal-600 hover:bg-teal-700 text-black" onClick={() => create.mutate({ assetId, ...form } as any)} disabled={create.isPending}>
           {create.isPending ? "Saving..." : "Save Log"}
         </Button>
       </DialogContent>
@@ -263,7 +263,7 @@ function AssetDetail({ asset }: { asset: any }) {
         onClick={() => setExpanded(e => !e)}
       >
         <div className="p-2 rounded-lg bg-zinc-800">
-          <Icon className="w-4 h-4 text-amber-400" />
+          <Icon className="w-4 h-4 text-teal-400" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
@@ -280,7 +280,7 @@ function AssetDetail({ asset }: { asset: any }) {
             <HealthBar score={asset.healthScore ?? 100} />
           </div>
           {warrantyDays !== null && (
-            <div className={`hidden md:block ${warrantyDays < 30 ? 'text-red-400' : warrantyDays < 90 ? 'text-amber-400' : 'text-muted-foreground'}`}>
+            <div className={`hidden md:block ${warrantyDays < 30 ? 'text-red-400' : warrantyDays < 90 ? 'text-teal-400' : 'text-muted-foreground'}`}>
               Warranty {warrantyDays < 0 ? 'expired' : `${warrantyDays}d`}
             </div>
           )}
@@ -321,7 +321,7 @@ function AssetDetail({ asset }: { asset: any }) {
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="text-xs">{FREQ_LABELS[s.frequency]}</Badge>
                         {due !== null && (
-                          <span className={due < 0 ? 'text-red-400 font-bold' : due < 7 ? 'text-amber-400' : 'text-muted-foreground'}>
+                          <span className={due < 0 ? 'text-red-400 font-bold' : due < 7 ? 'text-teal-400' : 'text-muted-foreground'}>
                             {due < 0 ? `${Math.abs(due)}d overdue` : due === 0 ? 'Due today' : `Due in ${due}d`}
                           </span>
                         )}
@@ -364,7 +364,7 @@ function LogRow({ log, assetId, onUpdate }: { log: any; assetId: number; onUpdat
     onSuccess: () => utils.assets.listEvidence.invalidate({ logId: log.id }),
   });
 
-  const statusColor = log.status === 'completed' ? 'text-emerald-400' : log.status === 'partial' ? 'text-amber-400' : 'text-zinc-400';
+  const statusColor = log.status === 'completed' ? 'text-emerald-400' : log.status === 'partial' ? 'text-teal-400' : 'text-zinc-400';
 
   return (
     <div className="bg-zinc-800/40 rounded p-3 text-xs space-y-2">
@@ -373,7 +373,7 @@ function LogRow({ log, assetId, onUpdate }: { log: any; assetId: number; onUpdat
           <div className="flex items-center gap-2">
             <span className="font-medium">{log.maintenanceType}</span>
             <span className={statusColor}>{log.status}</span>
-            {log.cost > 0 && <span className="text-amber-400">{fmt(log.cost)}</span>}
+            {log.cost > 0 && <span className="text-teal-400">{fmt(log.cost)}</span>}
           </div>
           <div className="text-muted-foreground mt-0.5">
             {log.doneDate} {log.technician && `· ${log.technician}`} {log.vendor && `· ${log.vendor}`}
@@ -398,7 +398,7 @@ function LogRow({ log, assetId, onUpdate }: { log: any; assetId: number; onUpdat
             <div className="flex flex-wrap gap-2">
               {evidence.map((ev: any) => (
                 <div key={ev.id} className="flex items-center gap-1 bg-zinc-700 rounded px-2 py-1">
-                  {ev.fileType === 'image' ? <Image className="w-3 h-3 text-blue-400" /> : <FileText className="w-3 h-3 text-amber-400" />}
+                  {ev.fileType === 'image' ? <Image className="w-3 h-3 text-blue-400" /> : <FileText className="w-3 h-3 text-teal-400" />}
                   <a href={ev.fileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline max-w-32 truncate">{ev.fileName}</a>
                   <button onClick={() => deleteEvidence.mutate({ id: ev.id })} className="text-zinc-500 hover:text-red-400 ml-1">
                     <Trash2 className="w-3 h-3" />
@@ -427,9 +427,9 @@ function HealthDashboard() {
         {[
           { label: "Total Assets", value: total, color: "text-white" },
           { label: "Operational", value: byStatus?.operational ?? 0, color: "text-emerald-400" },
-          { label: "Under Maintenance", value: byStatus?.under_maintenance ?? 0, color: "text-amber-400" },
+          { label: "Under Maintenance", value: byStatus?.under_maintenance ?? 0, color: "text-teal-400" },
           { label: "Faulty", value: byStatus?.faulty ?? 0, color: "text-red-400" },
-          { label: "Avg Health", value: `${Math.round(avgHealth ?? 0)}%`, color: avgHealth >= 80 ? "text-emerald-400" : avgHealth >= 50 ? "text-amber-400" : "text-red-400" },
+          { label: "Avg Health", value: `${Math.round(avgHealth ?? 0)}%`, color: avgHealth >= 80 ? "text-emerald-400" : avgHealth >= 50 ? "text-teal-400" : "text-red-400" },
         ].map(({ label, value, color }) => (
           <Card key={label} className="bg-zinc-900 border-zinc-800">
             <CardContent className="p-3 text-center">
@@ -471,9 +471,9 @@ function HealthDashboard() {
 
       {/* Upcoming maintenance */}
       {upcomingMaintenance?.length > 0 && (
-        <Card className="bg-zinc-900 border-amber-900/50">
+        <Card className="bg-zinc-900 border-teal-900/50">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2 text-amber-400">
+            <CardTitle className="text-sm flex items-center gap-2 text-teal-400">
               <Calendar className="w-4 h-4" /> Upcoming Maintenance (30 days)
             </CardTitle>
           </CardHeader>
@@ -487,7 +487,7 @@ function HealthDashboard() {
                       <div className="font-medium">{s.assetName}</div>
                       <div className="text-xs text-muted-foreground">{s.maintenanceType} · {FREQ_LABELS[s.frequency]}</div>
                     </div>
-                    <div className={`text-xs font-bold ${due !== null && due < 0 ? 'text-red-400' : due !== null && due < 7 ? 'text-amber-400' : 'text-muted-foreground'}`}>
+                    <div className={`text-xs font-bold ${due !== null && due < 0 ? 'text-red-400' : due !== null && due < 7 ? 'text-teal-400' : 'text-muted-foreground'}`}>
                       {due !== null ? (due < 0 ? `${Math.abs(due)}d overdue` : due === 0 ? 'Due today' : `${due}d`) : s.nextDueDate}
                     </div>
                   </div>
@@ -521,7 +521,7 @@ function NotificationsPanel() {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Bell className="w-4 h-4 text-amber-400" />
+          <Bell className="w-4 h-4 text-teal-400" />
           <span className="text-sm font-medium">Maintenance Alerts</span>
           {unread > 0 && <Badge className="bg-red-600 text-xs">{unread}</Badge>}
         </div>
@@ -538,7 +538,7 @@ function NotificationsPanel() {
         <div className="space-y-2">
           {notifications.map((n: any) => {
             const typeColor = n.notificationType === 'overdue' ? 'border-red-800 bg-red-950/20' :
-                             n.notificationType === 'due_today' ? 'border-amber-800 bg-amber-950/20' :
+                             n.notificationType === 'due_today' ? 'border-teal-800 bg-teal-950/20' :
                              n.notificationType === 'due_soon' ? 'border-yellow-800 bg-yellow-950/20' :
                              'border-zinc-800 bg-zinc-900';
             return (
@@ -594,7 +594,7 @@ export default function Assets() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold flex items-center gap-2">
-            <Wrench className="w-5 h-5 text-amber-400" /> Assets & Equipment
+            <Wrench className="w-5 h-5 text-teal-400" /> Assets & Equipment
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">Health · Maintenance · Evidence</p>
         </div>

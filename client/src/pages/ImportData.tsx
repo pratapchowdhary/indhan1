@@ -211,14 +211,14 @@ export default function ImportData() {
                 {s.status === "supported" ? (
                   <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />
                 ) : (
-                  <span className="w-4 h-4 text-amber-400 shrink-0 mt-0.5 text-xs font-bold">~</span>
+                  <span className="w-4 h-4 text-teal-400 shrink-0 mt-0.5 text-xs font-bold">~</span>
                 )}
                 <div>
                   <p className="text-xs font-semibold">{s.name}</p>
                   <p className="text-[11px] text-muted-foreground">{s.description}</p>
                 </div>
                 {s.status === "coming_soon" && (
-                  <Badge className="ml-auto text-[9px] bg-amber-500/10 text-amber-400 border-amber-500/20 shrink-0">Soon</Badge>
+                  <Badge className="ml-auto text-[9px] bg-teal-500/10 text-teal-400 border-teal-500/20 shrink-0">Soon</Badge>
                 )}
               </div>
             ))}

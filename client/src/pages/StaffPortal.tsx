@@ -277,7 +277,7 @@ export default function StaffPortal() {
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
             <div className="text-4xl mb-2">⛽</div>
-            <h1 className="text-2xl font-bold text-amber-400">BEES Staff Portal</h1>
+            <h1 className="text-2xl font-bold text-teal-400">BEES Staff Portal</h1>
             <p className="text-zinc-400 text-sm mt-1">Attendance & Payroll</p>
           </div>
           <div className="space-y-3">
@@ -285,9 +285,9 @@ export default function StaffPortal() {
               <button
                 key={emp.id}
                 onClick={() => { setSelectedEmp(emp); setScreen('pin'); setPin(''); setPinError(''); }}
-                className="w-full flex items-center gap-4 p-4 bg-zinc-900 hover:bg-zinc-800 rounded-xl border border-zinc-800 hover:border-amber-500 transition-all"
+                className="w-full flex items-center gap-4 p-4 bg-zinc-900 hover:bg-zinc-800 rounded-xl border border-zinc-800 hover:border-teal-500 transition-all"
               >
-                <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-black font-bold text-lg">
+                <div className="w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold text-lg">
                   {emp.name[0]}
                 </div>
                 <div className="text-left">
@@ -311,7 +311,7 @@ export default function StaffPortal() {
             ← Back
           </button>
           <div className="text-center mb-6">
-            <div className="w-16 h-16 rounded-full bg-amber-500 flex items-center justify-center text-black font-bold text-2xl mx-auto mb-3">
+            <div className="w-16 h-16 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold text-2xl mx-auto mb-3">
               {selectedEmp?.name[0]}
             </div>
             <h2 className="text-xl font-bold">{selectedEmp?.name}</h2>
@@ -322,7 +322,7 @@ export default function StaffPortal() {
           <div className="flex justify-center gap-3 mb-6">
             {[0,1,2,3,4,5].map(i => (
               <div key={i} className={`w-4 h-4 rounded-full border-2 transition-all ${
-                i < pin.length ? 'bg-amber-400 border-amber-400' : 'border-zinc-600'
+                i < pin.length ? 'bg-teal-400 border-teal-400' : 'border-zinc-600'
               }`} />
             ))}
           </div>
@@ -351,7 +351,7 @@ export default function StaffPortal() {
           <Button
             onClick={handlePinSubmit}
             disabled={pin.length !== 6 || loginMut.isPending}
-            className="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold h-12"
+            className="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold h-12"
           >
             {loginMut.isPending ? 'Verifying...' : 'Login'}
           </Button>
@@ -365,7 +365,7 @@ export default function StaffPortal() {
       <div className="min-h-screen bg-zinc-950 text-white flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-sm">
           <div className="text-center mb-6">
-            <Fingerprint className="mx-auto text-amber-400 mb-3" size={48} />
+            <Fingerprint className="mx-auto text-teal-400 mb-3" size={48} />
             <h2 className="text-xl font-bold">Face Enrolment</h2>
             <p className="text-zinc-400 text-sm mt-1">
               We need to capture your face to enable biometric check-ins.
@@ -385,14 +385,14 @@ export default function StaffPortal() {
               </div>
             )}
             {captureCount > 0 && (
-              <div className="absolute top-3 right-3 bg-amber-500 text-black text-xs font-bold px-2 py-1 rounded-full">
+              <div className="absolute top-3 right-3 bg-teal-600 text-white text-xs font-bold px-2 py-1 rounded-full">
                 {captureCount}/5
               </div>
             )}
           </div>
 
           {!cameraActive ? (
-            <Button onClick={startCamera} disabled={!modelsReady} className="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold h-12">
+            <Button onClick={startCamera} disabled={!modelsReady} className="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold h-12">
               <Camera className="mr-2" size={18} /> Start Camera
             </Button>
           ) : (
@@ -421,7 +421,7 @@ export default function StaffPortal() {
             <h2 className="text-xl font-bold">Check-in Verification</h2>
             <p className="text-zinc-400 text-sm mt-1">Face + Location required</p>
             {pendingSlot.data && (
-              <p className="text-amber-400 text-xs mt-2">
+              <p className="text-teal-400 text-xs mt-2">
                 Window closes at {new Date(pendingSlot.data.windowEndsAt).toLocaleTimeString()}
               </p>
             )}
@@ -437,7 +437,7 @@ export default function StaffPortal() {
           </div>
 
           {!cameraActive ? (
-            <Button onClick={startCamera} disabled={!modelsReady} className="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold h-12">
+            <Button onClick={startCamera} disabled={!modelsReady} className="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold h-12">
               <Camera className="mr-2" size={18} /> Open Camera
             </Button>
           ) : (
@@ -465,7 +465,7 @@ export default function StaffPortal() {
         <div className="max-w-sm mx-auto">
           <button onClick={() => setScreen('dashboard')} className="text-zinc-400 text-sm mb-6">← Back</button>
           <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-            <Banknote className="text-amber-400" size={24} /> Request Payment
+            <Banknote className="text-teal-400" size={24} /> Request Payment
           </h2>
 
           <div className="space-y-4 mb-6">
@@ -486,7 +486,7 @@ export default function StaffPortal() {
                       }
                     }}
                     className={`p-3 rounded-xl border text-sm font-medium transition-all capitalize ${
-                      payrollType === t ? 'border-amber-500 bg-amber-500/10 text-amber-400' : 'border-zinc-700 text-zinc-400'
+                      payrollType === t ? 'border-teal-500 bg-teal-500/10 text-teal-400' : 'border-zinc-700 text-zinc-400'
                     }`}
                   >
                     {t}
@@ -528,7 +528,7 @@ export default function StaffPortal() {
           <Button
             onClick={handlePayrollRequest}
             disabled={requestPayrollMut.isPending || !payrollPeriodStart || !payrollPeriodEnd}
-            className="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold h-12"
+            className="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold h-12"
           >
             {requestPayrollMut.isPending ? 'Submitting...' : 'Submit Request'}
           </Button>
@@ -571,7 +571,7 @@ export default function StaffPortal() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-black font-bold">
+            <div className="w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold">
               {session?.name[0]}
             </div>
             <div>
@@ -586,10 +586,10 @@ export default function StaffPortal() {
 
         {/* Active check-in alert */}
         {hasActiveCheckin && (
-          <div className="bg-amber-500/10 border border-amber-500 rounded-xl p-4 mb-4 flex items-center gap-3">
-            <AlertCircle className="text-amber-400 shrink-0" size={24} />
+          <div className="bg-teal-500/10 border border-teal-500 rounded-xl p-4 mb-4 flex items-center gap-3">
+            <AlertCircle className="text-teal-400 shrink-0" size={24} />
             <div className="flex-1">
-              <p className="font-semibold text-amber-400">Check-in Required!</p>
+              <p className="font-semibold text-teal-400">Check-in Required!</p>
               <p className="text-xs text-zinc-300">
                 Window closes at {new Date(pendingSlot.data!.windowEndsAt).toLocaleTimeString()}
               </p>
@@ -597,7 +597,7 @@ export default function StaffPortal() {
             <Button
               size="sm"
               onClick={() => { setScreen('checkin'); startCamera(); }}
-              className="bg-amber-500 hover:bg-amber-400 text-black font-bold shrink-0"
+              className="bg-teal-600 hover:bg-teal-500 text-white font-bold shrink-0"
             >
               Verify
             </Button>
@@ -613,7 +613,7 @@ export default function StaffPortal() {
           </CardHeader>
           <CardContent>
             <div className="flex items-end gap-2 mb-3">
-              <span className={`text-4xl font-bold ${(score?.overallScore ?? 0) >= 90 ? 'text-green-400' : 'text-amber-400'}`}>
+              <span className={`text-4xl font-bold ${(score?.overallScore ?? 0) >= 90 ? 'text-green-400' : 'text-teal-400'}`}>
                 {score?.overallScore?.toFixed(1) ?? '—'}%
               </span>
               <span className="text-zinc-400 text-sm mb-1">attendance</span>
@@ -638,7 +638,7 @@ export default function StaffPortal() {
                 <CheckCircle2 size={12} /> Eligible for payment
               </p>
             ) : (
-              <p className="text-amber-400 text-xs mt-3 flex items-center gap-1">
+              <p className="text-teal-400 text-xs mt-3 flex items-center gap-1">
                 <XCircle size={12} /> Need {(90 - (score?.overallScore ?? 0)).toFixed(1)}% more to be eligible
               </p>
             )}
@@ -651,7 +651,7 @@ export default function StaffPortal() {
             onClick={() => setScreen('payroll')}
             className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-xl p-4 text-left transition-all"
           >
-            <Banknote className="text-amber-400 mb-2" size={24} />
+            <Banknote className="text-teal-400 mb-2" size={24} />
             <p className="font-semibold text-sm">Request Pay</p>
             <p className="text-xs text-zinc-400">Weekly or monthly</p>
           </button>
@@ -671,7 +671,7 @@ export default function StaffPortal() {
           {pendingSlot.isLoading ? (
             <p className="text-zinc-500 text-sm">Loading...</p>
           ) : hasActiveCheckin ? (
-            <p className="text-amber-400 text-sm">⚠ Active window open — verify now!</p>
+            <p className="text-teal-400 text-sm">⚠ Active window open — verify now!</p>
           ) : (
             <p className="text-zinc-400 text-sm">No active check-in window right now</p>
           )}

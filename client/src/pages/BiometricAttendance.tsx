@@ -83,13 +83,13 @@ export default function BiometricAttendance() {
 
   const getScoreColor = (score: number) => {
     if (score >= 90) return 'text-green-400';
-    if (score >= 70) return 'text-amber-400';
+    if (score >= 70) return 'text-teal-400';
     return 'text-red-400';
   };
 
   const getStatusBadge = (status: string) => {
     const map: Record<string, string> = {
-      pending: 'bg-amber-900/50 text-amber-300 border-amber-700',
+      pending: 'bg-teal-900/50 text-teal-300 border-teal-700',
       approved: 'bg-blue-900/50 text-blue-300 border-blue-700',
       paid: 'bg-green-900/50 text-green-300 border-green-700',
       rejected: 'bg-red-900/50 text-red-300 border-red-700',
@@ -118,7 +118,7 @@ export default function BiometricAttendance() {
             size="sm"
             onClick={handleGenerateSlots}
             disabled={generateSlotsMut.isPending}
-            className="gap-2 bg-amber-500 hover:bg-amber-400 text-black"
+            className="gap-2 bg-teal-600 hover:bg-teal-500 text-white"
           >
             <RefreshCw size={14} className={generateSlotsMut.isPending ? 'animate-spin' : ''} />
             Generate Today's Slots
@@ -151,10 +151,10 @@ export default function BiometricAttendance() {
         <Card className="bg-card border-border">
           <CardContent className="pt-4">
             <div className="flex items-center gap-2 mb-1">
-              <Clock size={16} className="text-amber-400" />
+              <Clock size={16} className="text-teal-400" />
               <span className="text-xs text-muted-foreground">Pending Slots</span>
             </div>
-            <p className="text-2xl font-bold text-amber-400">
+            <p className="text-2xl font-bold text-teal-400">
               {todayOverview.data?.reduce((s: number, e: any) => s + e.pending, 0) ?? 0}
             </p>
           </CardContent>
@@ -179,7 +179,7 @@ export default function BiometricAttendance() {
           <TabsTrigger value="payroll">
             Payroll Requests
             {(pendingPayroll.data?.length ?? 0) > 0 && (
-              <span className="ml-2 bg-amber-500 text-black text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+              <span className="ml-2 bg-teal-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
                 {pendingPayroll.data?.length}
               </span>
             )}
@@ -202,7 +202,7 @@ export default function BiometricAttendance() {
               <Card key={emp.employee.id} className="bg-card border-border">
                 <CardContent className="pt-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 font-bold">
+                    <div className="w-10 h-10 rounded-full bg-teal-500/20 flex items-center justify-center text-teal-400 font-bold">
                       {emp.employee.name[0]}
                     </div>
                     <div className="flex-1">
@@ -215,7 +215,7 @@ export default function BiometricAttendance() {
                       <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
                         <span className="text-green-400">✓ {emp.verified}</span>
                         <span className="text-red-400">✗ {emp.missed}</span>
-                        <span className="text-amber-400">⏳ {emp.pending}</span>
+                        <span className="text-teal-400">⏳ {emp.pending}</span>
                         <span>of {emp.slots} slots</span>
                       </div>
                       <Progress value={emp.score} className="h-1.5 mt-2" />
@@ -242,7 +242,7 @@ export default function BiometricAttendance() {
                   className="w-full flex items-center gap-3"
                   onClick={() => setExpandedEmp(expandedEmp === emp.id ? null : emp.id)}
                 >
-                  <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 font-bold">
+                  <div className="w-10 h-10 rounded-full bg-teal-500/20 flex items-center justify-center text-teal-400 font-bold">
                     {emp.name[0]}
                   </div>
                   <div className="flex-1 text-left">
@@ -283,7 +283,7 @@ export default function BiometricAttendance() {
                               <span>{s.verifiedSlots}/{s.totalSlots} slots</span>
                               <Badge className={
                                 s.dayStatus === 'present' ? 'bg-green-900/50 text-green-300 text-xs' :
-                                s.dayStatus === 'partial' ? 'bg-amber-900/50 text-amber-300 text-xs' :
+                                s.dayStatus === 'partial' ? 'bg-teal-900/50 text-teal-300 text-xs' :
                                 'bg-red-900/50 text-red-300 text-xs'
                               }>
                                 {s.dayStatus}
@@ -313,7 +313,7 @@ export default function BiometricAttendance() {
                 <CardContent className="pt-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 font-bold shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-teal-500/20 flex items-center justify-center text-teal-400 font-bold shrink-0">
                         {item.employee.name[0]}
                       </div>
                       <div>
@@ -455,10 +455,10 @@ function SetupPins() {
 
   return (
     <div className="space-y-4">
-      <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 flex gap-3">
-        <Shield className="text-amber-400 shrink-0 mt-0.5" size={18} />
+      <div className="bg-teal-500/10 border border-teal-500/30 rounded-lg p-4 flex gap-3">
+        <Shield className="text-teal-400 shrink-0 mt-0.5" size={18} />
         <div className="text-sm">
-          <p className="font-semibold text-amber-400">Admin Action Required</p>
+          <p className="font-semibold text-teal-400">Admin Action Required</p>
           <p className="text-muted-foreground mt-1">
             Set a 6-digit PIN for each employee. They will use this PIN to log in to the Staff Portal
             at <code className="bg-muted px-1 rounded">/staff</code> and verify their identity before face enrolment.
@@ -473,7 +473,7 @@ function SetupPins() {
           <Card key={item.employee.id} className="bg-card border-border">
             <CardContent className="pt-4">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 font-bold">
+                <div className="w-10 h-10 rounded-full bg-teal-500/20 flex items-center justify-center text-teal-400 font-bold">
                   {item.employee.name[0]}
                 </div>
                 <div className="flex-1">
@@ -502,7 +502,7 @@ function SetupPins() {
                   size="sm"
                   onClick={() => handleSetPin(item.employee.id)}
                   disabled={setPin.isPending}
-                  className="bg-amber-500 hover:bg-amber-400 text-black font-bold"
+                  className="bg-teal-600 hover:bg-teal-500 text-white font-bold"
                 >
                   Set PIN
                 </Button>

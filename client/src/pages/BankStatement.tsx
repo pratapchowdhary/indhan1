@@ -33,7 +33,7 @@ const TX_META: Record<string, { icon: any; color: string; bg: string; border: st
   "RTGS":        { icon: TrendingUp,  color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/30", label: "RTGS" },
   "IMPS":        { icon: Wifi,        color: "text-cyan-400",   bg: "bg-cyan-500/10",   border: "border-cyan-500/30",   label: "IMPS" },
   "Cash":        { icon: Banknote,    color: "text-green-400",  bg: "bg-green-500/10",  border: "border-green-500/30",  label: "Cash" },
-  "Credit Card": { icon: CreditCard,  color: "text-amber-400",  bg: "bg-amber-500/10",  border: "border-amber-500/30",  label: "Card" },
+  "Credit Card": { icon: CreditCard,  color: "text-teal-400",  bg: "bg-teal-500/10",  border: "border-teal-500/30",  label: "Card" },
   "UPI":         { icon: Smartphone,  color: "text-pink-400",   bg: "bg-pink-500/10",   border: "border-pink-500/30",   label: "UPI" },
 };
 const DEFAULT_TX: { icon: any; color: string; bg: string; border: string; label: string } = { icon: Landmark, color: "text-muted-foreground", bg: "bg-secondary", border: "border-border/50", label: "TXN" };
@@ -226,10 +226,10 @@ export default function BankStatement() {
         </Card>
         <Card className="bg-card border-border/50">
           <CardContent className="p-4">
-            <div className="w-9 h-9 rounded-lg border border-amber-500/20 bg-amber-500/10 flex items-center justify-center mb-3">
-              <Clock className="w-4 h-4 text-amber-400" />
+            <div className="w-9 h-9 rounded-lg border border-teal-500/20 bg-teal-500/10 flex items-center justify-center mb-3">
+              <Clock className="w-4 h-4 text-teal-400" />
             </div>
-            <p className="text-lg font-bold tabular-nums text-amber-400">{pendingCount}</p>
+            <p className="text-lg font-bold tabular-nums text-teal-400">{pendingCount}</p>
             <p className="text-[10px] text-muted-foreground mt-0.5">Pending Reconciliation</p>
           </CardContent>
         </Card>

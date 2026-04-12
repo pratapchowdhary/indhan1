@@ -29,7 +29,7 @@ const fmtCompact = (n: number) => {
 const CATEGORY_META: Record<string, { icon: any; color: string; bg: string; bar: string }> = {
   "Wages":            { icon: Users,        color: "#60a5fa", bg: "bg-blue-500/10",    bar: "#60a5fa" },
   "Admin":            { icon: Wallet,       color: "#a78bfa", bg: "bg-purple-500/10",  bar: "#a78bfa" },
-  "Electricity":      { icon: Zap,          color: "#fbbf24", bg: "bg-yellow-500/10",  bar: "#fbbf24" },
+  "Electricity":      { icon: Zap,          color: "#17897e", bg: "bg-yellow-500/10",  bar: "#17897e" },
   "Hospitality":      { icon: Coffee,       color: "#f472b6", bg: "bg-pink-500/10",    bar: "#f472b6" },
   "Maintenance":      { icon: Wrench,       color: "#fb923c", bg: "bg-orange-500/10",  bar: "#fb923c" },
   "Performance Bonus":{ icon: Award,        color: "#34d399", bg: "bg-green-500/10",   bar: "#34d399" },
@@ -52,7 +52,7 @@ const PRESETS = [
 const STATUS_ICON: Record<string, any> = {
   approved: <CheckCircle className="w-3.5 h-3.5 text-green-400" />,
   rejected: <XCircle className="w-3.5 h-3.5 text-red-400" />,
-  pending:  <Clock className="w-3.5 h-3.5 text-amber-400" />,
+  pending:  <Clock className="w-3.5 h-3.5 text-teal-400" />,
 };
 
 // Payment source options
@@ -285,8 +285,8 @@ export default function Expenses() {
         </Card>
         <Card className="bg-card border-border/50">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-              <Clock className="w-5 h-5 text-amber-400" />
+            <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center shrink-0">
+              <Clock className="w-5 h-5 text-teal-400" />
             </div>
             <div>
               <p className="text-lg font-bold tabular-nums leading-tight">{pendingCount}</p>

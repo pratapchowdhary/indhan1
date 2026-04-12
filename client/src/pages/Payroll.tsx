@@ -32,7 +32,7 @@ function fmtFull(n: number | string | null | undefined) {
 const STATUS_CONFIG = {
   present:  { label: "P",  color: "bg-emerald-500", text: "text-white", full: "Present" },
   absent:   { label: "A",  color: "bg-red-500",     text: "text-white", full: "Absent" },
-  half_day: { label: "H",  color: "bg-amber-400",   text: "text-white", full: "Half Day" },
+  half_day: { label: "H",  color: "bg-teal-400",   text: "text-white", full: "Half Day" },
   leave:    { label: "L",  color: "bg-blue-400",     text: "text-white", full: "Leave" },
   holiday:  { label: "HO", color: "bg-purple-400",  text: "text-white", full: "Holiday" },
 };
@@ -53,7 +53,7 @@ function AddEmployeeDialog({ onSuccess }: { onSuccess: () => void }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-black">
+        <Button size="sm" className="bg-teal-600 hover:bg-teal-700 text-white">
           <Plus className="w-4 h-4 mr-1" /> Add Employee
         </Button>
       </DialogTrigger>
@@ -110,7 +110,7 @@ function AddEmployeeDialog({ onSuccess }: { onSuccess: () => void }) {
             ))}
           </div>
         </div>
-        <Button className="w-full mt-2 bg-amber-500 hover:bg-amber-600 text-black" onClick={() => create.mutate(form as any)} disabled={create.isPending || !form.name}>
+        <Button className="w-full mt-2 bg-teal-600 hover:bg-teal-700 text-white" onClick={() => create.mutate(form as any)} disabled={create.isPending || !form.name}>
           {create.isPending ? "Adding..." : "Add Employee"}
         </Button>
       </DialogContent>
@@ -125,7 +125,7 @@ function PayslipModal({ employeeId, employeeName, month, year }: { employeeId: n
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-7 text-xs text-amber-400 hover:text-amber-300">
+        <Button variant="ghost" size="sm" className="h-7 text-xs text-teal-400 hover:text-teal-300">
           <Download className="w-3 h-3 mr-1" /> Payslip
         </Button>
       </DialogTrigger>
@@ -140,7 +140,7 @@ function PayslipModal({ employeeId, employeeName, month, year }: { employeeId: n
                 <div className="font-semibold">{slip.employeeName}</div>
                 <div className="text-xs text-muted-foreground">{slip.role} · {slip.department}</div>
               </div>
-              <Badge className={slip.paymentStatus === 'paid' ? 'bg-emerald-600' : 'bg-amber-600'}>
+              <Badge className={slip.paymentStatus === 'paid' ? 'bg-emerald-600' : 'bg-teal-600'}>
                 {slip.paymentStatus?.toUpperCase()}
               </Badge>
             </div>
@@ -160,7 +160,7 @@ function PayslipModal({ employeeId, employeeName, month, year }: { employeeId: n
               <div className="flex justify-between font-semibold border-t pt-1"><span>Total Deductions</span><span className="text-red-400">-{fmtFull(slip.totalDeductions)}</span></div>
             </div>
             <div className="flex justify-between text-base font-bold border-t pt-2">
-              <span>Net Pay</span><span className="text-amber-400">{fmtFull(slip.netPay)}</span>
+              <span>Net Pay</span><span className="text-teal-400">{fmtFull(slip.netPay)}</span>
             </div>
             <div className="text-xs text-muted-foreground border-t pt-2">
               <div className="font-semibold mb-1">Employer Cost (not deducted)</div>
@@ -232,7 +232,7 @@ export default function Payroll() {
   const todayStr = `${year}-${String(month).padStart(2,'0')}-${String(daysInMonth).padStart(2,'0')}`;
 
   const runStatusColor = {
-    draft: "bg-zinc-600", processed: "bg-blue-600", approved: "bg-amber-600", paid: "bg-emerald-600"
+    draft: "bg-zinc-600", processed: "bg-blue-600", approved: "bg-teal-600", paid: "bg-emerald-600"
   };
 
   return (
@@ -241,7 +241,7 @@ export default function Payroll() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold flex items-center gap-2">
-            <Users className="w-5 h-5 text-amber-400" /> HR & Payroll
+            <Users className="w-5 h-5 text-teal-400" /> HR & Payroll
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">Attendance · Payroll · Compliance</p>
         </div>
@@ -261,7 +261,7 @@ export default function Payroll() {
       {/* KPI Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { icon: Users, label: "Active Staff", value: totalEmployees, color: "text-amber-400" },
+          { icon: Users, label: "Active Staff", value: totalEmployees, color: "text-teal-400" },
           { icon: UserCheck, label: "Payroll Status", value: payrollRun ? (payrollRun.status ?? 'draft').toUpperCase() : "NOT RUN", color: "text-blue-400" },
           { icon: IndianRupee, label: "Net Pay", value: payrollRun ? fmt(payrollRun.totalNetPay) : "—", color: "text-emerald-400" },
           { icon: Building2, label: "Employer Cost", value: payrollRun ? fmt(Number(payrollRun.totalPfEmployer) + Number(payrollRun.totalEsiEmployer)) : "—", color: "text-purple-400" },
@@ -355,7 +355,7 @@ export default function Payroll() {
                                 </td>
                               );
                             })}
-                            <td className="p-2 text-center font-bold text-amber-400">{daysPresent.toFixed(1)}</td>
+                            <td className="p-2 text-center font-bold text-teal-400">{daysPresent.toFixed(1)}</td>
                           </tr>
                         );
                       })}
@@ -416,7 +416,7 @@ export default function Payroll() {
             {payrollRun && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
-                  { label: "Gross Payable", value: payrollRun.totalGross, color: "text-amber-400" },
+                  { label: "Gross Payable", value: payrollRun.totalGross, color: "text-teal-400" },
                   { label: "PF (Employee)", value: payrollRun.totalPfEmployee, color: "text-red-400" },
                   { label: "ESI (Employee)", value: payrollRun.totalEsiEmployee, color: "text-red-400" },
                   { label: "Prof. Tax", value: payrollRun.totalPt, color: "text-red-400" },
@@ -468,9 +468,9 @@ export default function Payroll() {
                           <td className="p-3 text-right text-red-400">-{fmt(slip.pfEmployee)}</td>
                           <td className="p-3 text-right text-red-400">-{fmt(slip.esiEmployee)}</td>
                           <td className="p-3 text-right text-red-400">-{fmt(slip.professionalTax)}</td>
-                          <td className="p-3 text-right font-bold text-amber-400">{fmt(slip.netPay)}</td>
+                          <td className="p-3 text-right font-bold text-teal-400">{fmt(slip.netPay)}</td>
                           <td className="p-3 text-center">
-                            <Badge className={slip.paymentStatus === 'paid' ? 'bg-emerald-600 text-xs' : 'bg-amber-600 text-xs'}>
+                            <Badge className={slip.paymentStatus === 'paid' ? 'bg-emerald-600 text-xs' : 'bg-teal-600 text-xs'}>
                               {slip.paymentStatus?.toUpperCase()}
                             </Badge>
                           </td>
@@ -528,7 +528,7 @@ export default function Payroll() {
                           <td className="p-3 text-muted-foreground">{emp.role}</td>
                           <td className="p-3 text-muted-foreground">{emp.department}</td>
                           <td className="p-3 text-right">{fmt(emp.basicSalary)}</td>
-                          <td className="p-3 text-right font-medium text-amber-400">{fmt(gross)}</td>
+                          <td className="p-3 text-right font-medium text-teal-400">{fmt(gross)}</td>
                           <td className="p-3 text-center">
                             {emp.pfApplicable ? <CheckCircle2 className="w-4 h-4 text-emerald-400 mx-auto" /> : <XCircle className="w-4 h-4 text-zinc-600 mx-auto" />}
                           </td>

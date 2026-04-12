@@ -399,3 +399,12 @@
 - [x] Add petrolSalesAmount and dieselSalesAmount to getDailyTrend and getDailyTrendByRange in db.ts (computed from fuel_config retail prices)
 - [x] Update sales.list tRPC response to include petrolSalesAmount and dieselSalesAmount
 - [x] Add Petrol (₹) and Diesel (₹) columns to Daily Sales Register table in Sales.tsx
+
+## ServCrust Brand Guidelines Application
+- [x] Update CSS variables in index.css: primary teal (#17897e), dark teal (#1e5f56), secondary gold/amber/orange
+- [x] Replace Inter/Plus Jakarta Sans font with Montserrat from Google Fonts in index.html
+- [x] Update dark theme colours to use teal-based palette (teal-tinted dark backgrounds)
+- [x] Update sidebar active state, hover colours to teal brand
+- [x] Update button primary colour to teal
+- [x] Update dashboard KPI card accent colours (amber → teal throughout all 19 pages)
+- [x] Ensure text contrast is maintained throughout (white text on teal buttons)

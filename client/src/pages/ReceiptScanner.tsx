@@ -209,7 +209,7 @@ export default function ReceiptScanner() {
   const fcBadge = (field: string) => {
     const s = fc(field);
     if (s == null) return null;
-    const cls = s >= 85 ? "text-green-400" : s >= 65 ? "text-amber-400" : "text-red-400";
+    const cls = s >= 85 ? "text-green-400" : s >= 65 ? "text-teal-400" : "text-red-400";
     return <span className={`text-[10px] font-medium ml-1 ${cls}`}>{s}%</span>;
   };
 
@@ -220,7 +220,7 @@ export default function ReceiptScanner() {
   const confidenceColor = (score: number | null) => {
     if (!score) return "text-muted-foreground";
     if (score >= 80) return "text-green-400";
-    if (score >= 60) return "text-amber-400";
+    if (score >= 60) return "text-teal-400";
     return "text-red-400";
   };
 
@@ -338,9 +338,9 @@ export default function ReceiptScanner() {
                   </div>
                 )}
                 {extracted?.confidenceScore !== null && extracted?.confidenceScore !== undefined && extracted.confidenceScore < 70 && (
-                  <div className="mt-2 flex items-start gap-2 p-2.5 rounded-lg border border-amber-500/20 bg-amber-500/5">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
-                    <p className="text-[11px] text-amber-400/80">Low confidence extraction. Please carefully verify all fields before confirming.</p>
+                  <div className="mt-2 flex items-start gap-2 p-2.5 rounded-lg border border-teal-500/20 bg-teal-500/5">
+                    <AlertTriangle className="w-3.5 h-3.5 text-teal-400 shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-teal-400/80">Low confidence extraction. Please carefully verify all fields before confirming.</p>
                   </div>
                 )}
               </CardContent>
@@ -373,7 +373,7 @@ export default function ReceiptScanner() {
                 </div>
               </div>
               {extracted?.notes && (
-                <p className="text-[11px] text-amber-400/80 mt-1 flex items-start gap-1">
+                <p className="text-[11px] text-teal-400/80 mt-1 flex items-start gap-1">
                   <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" /> {extracted.notes}
                 </p>
               )}
@@ -575,7 +575,7 @@ export default function ReceiptScanner() {
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
                       {r.fuelType && (
-                        <span className={`text-[10px] font-medium capitalize ${r.fuelType === "petrol" ? "text-amber-400" : "text-blue-400"}`}>
+                        <span className={`text-[10px] font-medium capitalize ${r.fuelType === "petrol" ? "text-teal-400" : "text-blue-400"}`}>
                           {r.fuelType}
                         </span>
                       )}
@@ -587,7 +587,7 @@ export default function ReceiptScanner() {
                     {r.totalAmount && <p className="text-sm font-bold tabular-nums">{fmtCompact(r.totalAmount)}</p>}
                     <div className="flex items-center gap-1 justify-end mt-0.5">
                       {r.status === "confirmed" && <Badge variant="outline" className="text-[10px] h-4 px-1.5 border-green-500/30 text-green-400">PO #{r.purchaseOrderId}</Badge>}
-                      {r.status === "extracted" && <Badge variant="outline" className="text-[10px] h-4 px-1.5 border-amber-500/30 text-amber-400">Pending</Badge>}
+                      {r.status === "extracted" && <Badge variant="outline" className="text-[10px] h-4 px-1.5 border-teal-500/30 text-teal-400">Pending</Badge>}
                       {r.status === "failed" && <Badge variant="outline" className="text-[10px] h-4 px-1.5 border-red-500/30 text-red-400">Failed</Badge>}
                     </div>
                   </div>

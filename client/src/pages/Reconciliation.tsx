@@ -122,7 +122,7 @@ export default function Reconciliation() {
                 <p className="text-sm font-semibold text-primary flex items-center gap-1.5">
                   Nozzle Data Available
                   {nozzleData.hasOpenSessions && (
-                    <Badge className="text-[9px] bg-amber-500/20 text-amber-400 border-amber-500/30 border">
+                    <Badge className="text-[9px] bg-teal-500/20 text-teal-400 border-teal-500/30 border">
                       Shift Still Open
                     </Badge>
                   )}
@@ -133,8 +133,8 @@ export default function Reconciliation() {
                 </p>
                 <div className="flex items-center gap-4 mt-2 flex-wrap">
                   <div className="flex items-center gap-1.5">
-                    <Fuel className="w-3 h-3 text-amber-400" />
-                    <span className="text-xs font-medium text-amber-400">{fmtL(nozzleData.totalPetrolLitres)} Petrol</span>
+                    <Fuel className="w-3 h-3 text-teal-400" />
+                    <span className="text-xs font-medium text-teal-400">{fmtL(nozzleData.totalPetrolLitres)} Petrol</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Fuel className="w-3 h-3 text-blue-400" />
@@ -198,7 +198,7 @@ export default function Reconciliation() {
                     <span className="text-sm font-semibold">{session.staffName}</span>
                     <Badge variant="outline" className="text-[10px] capitalize">{session.shiftLabel?.replace("_", " ")}</Badge>
                     <Badge
-                      className={`text-[10px] ${session.status === "closed" || session.status === "reconciled" ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-amber-500/20 text-amber-400 border-amber-500/30"} border`}
+                      className={`text-[10px] ${session.status === "closed" || session.status === "reconciled" ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-teal-500/20 text-teal-400 border-teal-500/30"} border`}
                     >
                       {session.status}
                     </Badge>
@@ -210,9 +210,9 @@ export default function Reconciliation() {
                 <div className="px-4 py-3 space-y-2">
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {session.nozzleSummaries.map((n: any) => (
-                      <div key={n.nozzleId} className={`p-2.5 rounded-lg border text-center ${n.fuelType === "petrol" ? "bg-amber-500/5 border-amber-500/20" : "bg-blue-500/5 border-blue-500/20"}`}>
+                      <div key={n.nozzleId} className={`p-2.5 rounded-lg border text-center ${n.fuelType === "petrol" ? "bg-teal-500/5 border-teal-500/20" : "bg-blue-500/5 border-blue-500/20"}`}>
                         <p className="text-[10px] text-muted-foreground truncate">{n.label}</p>
-                        <p className={`text-sm font-bold tabular-nums ${n.fuelType === "petrol" ? "text-amber-400" : "text-blue-400"}`}>
+                        <p className={`text-sm font-bold tabular-nums ${n.fuelType === "petrol" ? "text-teal-400" : "text-blue-400"}`}>
                           {n.dispensed !== null ? `${n.dispensed.toFixed(2)} L` : "—"}
                         </p>
                         {n.opening !== null && n.closing !== null && (
@@ -248,7 +248,7 @@ export default function Reconciliation() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
                 <div>
                   <p className="text-[10px] text-muted-foreground">Total Petrol</p>
-                  <p className="text-sm font-bold text-amber-400 tabular-nums">{fmtL(nozzleData.totalPetrolLitres)}</p>
+                  <p className="text-sm font-bold text-teal-400 tabular-nums">{fmtL(nozzleData.totalPetrolLitres)}</p>
                 </div>
                 <div>
                   <p className="text-[10px] text-muted-foreground">Total Diesel</p>
@@ -353,10 +353,10 @@ export default function Reconciliation() {
             {/* Nozzle volumes (read-only, from nozzle data) */}
             {hasNozzleData && (
               <div className="grid grid-cols-2 gap-2 pt-1">
-                <div className="p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/20 text-center">
-                  <Fuel className="w-3 h-3 text-amber-400 mx-auto mb-0.5" />
+                <div className="p-2.5 rounded-lg bg-teal-500/5 border border-teal-500/20 text-center">
+                  <Fuel className="w-3 h-3 text-teal-400 mx-auto mb-0.5" />
                   <p className="text-[10px] text-muted-foreground">Petrol Dispensed</p>
-                  <p className="text-sm font-bold text-amber-400 tabular-nums">{fmtL(nozzleData!.totalPetrolLitres)}</p>
+                  <p className="text-sm font-bold text-teal-400 tabular-nums">{fmtL(nozzleData!.totalPetrolLitres)}</p>
                 </div>
                 <div className="p-2.5 rounded-lg bg-blue-500/5 border border-blue-500/20 text-center">
                   <Fuel className="w-3 h-3 text-blue-400 mx-auto mb-0.5" />

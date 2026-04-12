@@ -33,10 +33,10 @@ function NozzleHandoverCard({
   );
 
   const fuelColor = nozzle.fuelType === "petrol"
-    ? "from-amber-50 to-orange-50 border-amber-200"
+    ? "from-teal-50 to-teal-50 border-teal-200"
     : "from-blue-50 to-sky-50 border-blue-200";
   const fuelBadge = nozzle.fuelType === "petrol"
-    ? "bg-amber-100 text-amber-700"
+    ? "bg-teal-100 text-teal-700"
     : "bg-blue-100 text-blue-700";
 
   const variance = Number(actualAmount || 0) - nozzle.netCash;
@@ -57,7 +57,7 @@ function NozzleHandoverCard({
               <CheckCircle2 className="h-3 w-3" /> Confirmed
             </Badge>
           ) : (
-            <Badge variant="outline" className="gap-1 text-amber-600 border-amber-300">
+            <Badge variant="outline" className="gap-1 text-teal-600 border-teal-300">
               <Clock className="h-3 w-3" /> Pending
             </Badge>
           )}
@@ -265,10 +265,10 @@ export default function CashHandover() {
                 <p className="text-lg font-bold text-blue-700">{fmtINR(summary.totalNetCash)}</p>
               </CardContent>
             </Card>
-            <Card className={`border-0 ${summary.allConfirmed ? "bg-emerald-50" : "bg-amber-50"}`}>
+            <Card className={`border-0 ${summary.allConfirmed ? "bg-emerald-50" : "bg-teal-50"}`}>
               <CardContent className="p-3">
                 <p className="text-xs text-muted-foreground">Confirmed</p>
-                <p className={`text-lg font-bold ${summary.allConfirmed ? "text-emerald-700" : "text-amber-600"}`}>
+                <p className={`text-lg font-bold ${summary.allConfirmed ? "text-emerald-700" : "text-teal-600"}`}>
                   {summary.nozzles.filter((n: any) => n.confirmed).length} / {summary.nozzles.length} nozzles
                 </p>
               </CardContent>
@@ -360,7 +360,7 @@ export default function CashHandover() {
                           ? "bg-emerald-100 text-emerald-700"
                           : summary.existingVoucher.status === "deposited"
                           ? "bg-blue-100 text-blue-700"
-                          : "bg-amber-100 text-amber-700"
+                          : "bg-teal-100 text-teal-700"
                       }>
                         {summary.existingVoucher.status.charAt(0).toUpperCase() + summary.existingVoucher.status.slice(1)}
                       </Badge>
@@ -451,7 +451,7 @@ function VoucherModal({ voucherId, onClose }: { voucherId: number; onClose: () =
               <Badge className={
                 voucher.status === "reconciled" ? "bg-emerald-100 text-emerald-700" :
                 voucher.status === "deposited" ? "bg-blue-100 text-blue-700" :
-                "bg-amber-100 text-amber-700"
+                "bg-teal-100 text-teal-700"
               }>
                 {voucher.status === "reconciled" && <CheckCircle2 className="h-3 w-3 mr-1" />}
                 {voucher.status.charAt(0).toUpperCase() + voucher.status.slice(1)}
@@ -478,7 +478,7 @@ function VoucherModal({ voucherId, onClose }: { voucherId: number; onClose: () =
                       <tr key={s.id} className="border-t">
                         <td className="p-2.5">
                           <span className="font-medium">{s.nozzleLabel}</span>
-                          <Badge className={`ml-2 text-xs ${s.fuelType === "petrol" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"}`}>
+                          <Badge className={`ml-2 text-xs ${s.fuelType === "petrol" ? "bg-teal-100 text-teal-700" : "bg-blue-100 text-blue-700"}`}>
                             {s.fuelType}
                           </Badge>
                         </td>
@@ -517,7 +517,7 @@ function VoucherModal({ voucherId, onClose }: { voucherId: number; onClose: () =
               {voucher.floatRetained > 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Float Retained at Station</span>
-                  <span className="font-medium text-amber-600">− {fmtINR(voucher.floatRetained)}</span>
+                  <span className="font-medium text-teal-600">− {fmtINR(voucher.floatRetained)}</span>
                 </div>
               )}
               <Separator />
@@ -550,9 +550,9 @@ function VoucherModal({ voucherId, onClose }: { voucherId: number; onClose: () =
                 </div>
               </div>
             ) : (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center gap-2">
-                <Clock className="h-4 w-4 text-amber-600" />
-                <p className="text-sm text-amber-700">Awaiting bank statement reconciliation</p>
+              <div className="bg-teal-50 border border-teal-200 rounded-xl p-3 flex items-center gap-2">
+                <Clock className="h-4 w-4 text-teal-600" />
+                <p className="text-sm text-teal-700">Awaiting bank statement reconciliation</p>
               </div>
             )}
 

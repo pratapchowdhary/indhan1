@@ -124,10 +124,10 @@ export default function DailyActivity() {
             {/* Petrol Volume */}
             <Card className="bg-card border-border/50">
               <CardContent className="p-4">
-                <div className="w-9 h-9 rounded-lg border border-amber-500/20 bg-amber-500/10 flex items-center justify-center mb-3">
-                  <Droplets className="w-4 h-4 text-amber-400" />
+                <div className="w-9 h-9 rounded-lg border border-teal-500/20 bg-teal-500/10 flex items-center justify-center mb-3">
+                  <Droplets className="w-4 h-4 text-teal-400" />
                 </div>
-                <p className="text-lg font-bold tabular-nums text-amber-400">{fmtL(report.totalPetrolLitres)}</p>
+                <p className="text-lg font-bold tabular-nums text-teal-400">{fmtL(report.totalPetrolLitres)}</p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">Petrol Sold</p>
               </CardContent>
             </Card>
@@ -225,8 +225,8 @@ export default function DailyActivity() {
                     <p className="text-2xl font-bold text-green-400">{report.closedSessions}</p>
                     <p className="text-[10px] text-muted-foreground">Closed</p>
                   </div>
-                  <div className="text-center p-3 rounded-lg bg-amber-500/10">
-                    <p className="text-2xl font-bold text-amber-400">{report.openSessions}</p>
+                  <div className="text-center p-3 rounded-lg bg-teal-500/10">
+                    <p className="text-2xl font-bold text-teal-400">{report.openSessions}</p>
                     <p className="text-[10px] text-muted-foreground">Open</p>
                   </div>
                 </div>
@@ -237,7 +237,7 @@ export default function DailyActivity() {
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Petrol</span>
-                    <span className="font-semibold text-amber-400">{fmtL(report.totalPetrolLitres)}</span>
+                    <span className="font-semibold text-teal-400">{fmtL(report.totalPetrolLitres)}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Diesel</span>
@@ -265,7 +265,7 @@ export default function DailyActivity() {
                     >
                       {session.status === "closed"
                         ? <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />
-                        : <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                        : <Clock className="w-4 h-4 text-teal-400 shrink-0" />
                       }
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium">{session.staffName}</p>
@@ -284,8 +284,8 @@ export default function DailyActivity() {
                         {/* Per-nozzle breakdown */}
                         {session.nozzleSummaries?.map((ns: any) => (
                           <div key={ns.nozzleId} className="flex items-center gap-3 rounded-lg bg-card/60 px-3 py-2">
-                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${ns.fuelType === "petrol" ? "bg-amber-500/10 border border-amber-500/20" : "bg-blue-500/10 border border-blue-500/20"}`}>
-                              <Droplets className={`w-3.5 h-3.5 ${ns.fuelType === "petrol" ? "text-amber-400" : "text-blue-400"}`} />
+                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${ns.fuelType === "petrol" ? "bg-teal-500/10 border border-teal-500/20" : "bg-blue-500/10 border border-blue-500/20"}`}>
+                              <Droplets className={`w-3.5 h-3.5 ${ns.fuelType === "petrol" ? "text-teal-400" : "text-blue-400"}`} />
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-xs font-medium">{ns.label ?? `Nozzle #${ns.nozzleId}`}</p>
@@ -343,7 +343,7 @@ export default function DailyActivity() {
                   contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }}
                 />
                 <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 10 }} />
-                <Bar dataKey="petrol" name="Petrol" fill="#f59e0b" radius={[2, 2, 0, 0]} />
+                <Bar dataKey="petrol" name="Petrol" fill="#17897e" radius={[2, 2, 0, 0]} />
                 <Bar dataKey="diesel" name="Diesel" fill="#3b82f6" radius={[2, 2, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>

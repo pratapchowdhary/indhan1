@@ -38,9 +38,9 @@ function StockGaugeCard({ product }: { product: any }) {
   const pct = max > min ? Math.min(100, Math.max(0, ((current - min) / (max - min)) * 100)) : 0;
   const isCritical = pct < 15;
   const isLow = pct < 35;
-  const color = isCritical ? "#ef4444" : isLow ? "#f59e0b" : "#22c55e";
+  const color = isCritical ? "#ef4444" : isLow ? "#17897e" : "#22c55e";
   const statusText = isCritical ? "Critical" : isLow ? "Low" : "Good";
-  const statusBg = isCritical ? "bg-red-500/10 text-red-400 border-red-500/20" : isLow ? "bg-amber-500/10 text-amber-400 border-amber-500/20" : "bg-green-500/10 text-green-400 border-green-500/20";
+  const statusBg = isCritical ? "bg-red-500/10 text-red-400 border-red-500/20" : isLow ? "bg-teal-500/10 text-teal-400 border-teal-500/20" : "bg-green-500/10 text-green-400 border-green-500/20";
 
   return (
     <Card className={`bg-card border-border/50 ${isCritical ? "border-red-500/40" : ""}`}>
@@ -69,7 +69,7 @@ function StockGaugeCard({ product }: { product: any }) {
 const PO_STATUS_META: Record<string, { icon: any; color: string; bg: string }> = {
   delivered: { icon: CheckCircle, color: "text-green-400", bg: "bg-green-500/10" },
   ordered:   { icon: Truck,       color: "text-blue-400",  bg: "bg-blue-500/10"  },
-  pending:   { icon: Clock,       color: "text-amber-400", bg: "bg-amber-500/10" },
+  pending:   { icon: Clock,       color: "text-teal-400", bg: "bg-teal-500/10" },
 };
 
 export default function Inventory() {
@@ -212,7 +212,7 @@ export default function Inventory() {
       {fuelProducts.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <Droplets className="w-4 h-4 text-amber-400" />
+            <Droplets className="w-4 h-4 text-teal-400" />
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fuel</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
