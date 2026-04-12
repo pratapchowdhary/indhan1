@@ -3,6 +3,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { TRPCError } from "@trpc/server";
 import {
   getDashboardKPIs, getDailyTrend, getDailyTrendByRange,
   getAllCustomers, getCustomerById, createCustomer, updateCustomer, getCustomerReceivables, recordCustomerPayment,
@@ -190,7 +191,12 @@ const expensesRouter = router({
     transactionStatus: z.enum(["Paid", "Payable", "DuePayable", "DuePaid"]).default("Paid"),
     modeOfPayment: z.enum(["Bank", "Cash", "Fuel", "Online"]).default("Bank"),
     paidBy: z.string().max(100).optional(),
+    paymentSource: z.enum(["bank", "cash_nozzle", "cash_general"]).default("bank"),
+    nozzleId: z.number().int().positive().optional(),
   })).mutation(async ({ input }) => {
+    if (input.paymentSource === "cash_nozzle" && !input.nozzleId) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "Nozzle must be selected for Cash from Nozzle expenses" });
+    }
     await createExpense({ ...input, amount: String(input.amount) });
     return { success: true };
   }),

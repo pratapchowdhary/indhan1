@@ -192,6 +192,92 @@ export const nozzleRouter = router({
       return getRecentDayReconciliations(input.limit);
     }),
 
+  // ── Daily Activity Report — live data from nozzle sessions ─────────────────
+  // Returns a full daily activity summary for a given date, aggregated from
+  // all nozzle sessions. No manual entry needed — data flows automatically.
+  getDailyActivityReport: protectedProcedure
+    .input(z.object({ reportDate: safeDate }))
+    .query(async ({ input }) => {
+      const sessions = await getSessionsForDate(input.reportDate);
+
+      let totalPetrol = 0, totalDiesel = 0;
+      let totalCash = 0, totalDigital = 0, totalCredit = 0;
+      const digitalBreakdown: Record<string, number> = { upi: 0, phonepe: 0, card: 0, bank_transfer: 0, bhim: 0 };
+      const sessionDetails: any[] = [];
+
+      for (const session of sessions) {
+        const summary = await getSessionSummary(session.id);
+        totalPetrol  += summary.totalPetrolLitres;
+        totalDiesel  += summary.totalDieselLitres;
+        totalCash    += summary.totalCash;
+        totalDigital += summary.totalDigital;
+        totalCredit  += summary.totalCredit;
+        // Merge digital breakdown
+        for (const [k, v] of Object.entries(summary.digitalBreakdown ?? {})) {
+          if (k in digitalBreakdown) digitalBreakdown[k] += v as number;
+        }
+        sessionDetails.push({
+          sessionId: session.id,
+          staffName: session.staffName,
+          shiftLabel: session.shiftLabel,
+          status: session.status,
+          nozzleSummaries: summary.nozzleSummaries,
+          totalCash: summary.totalCash,
+          totalDigital: summary.totalDigital,
+          totalCredit: summary.totalCredit,
+          totalCollected: summary.totalCollected,
+          totalPetrolLitres: summary.totalPetrolLitres,
+          totalDieselLitres: summary.totalDieselLitres,
+        });
+      }
+
+      const totalCollected = totalCash + totalDigital + totalCredit;
+
+      return {
+        reportDate: input.reportDate,
+        sessions: sessionDetails,
+        sessionCount: sessions.length,
+        openSessions: sessions.filter(s => s.status === "open").length,
+        closedSessions: sessions.filter(s => s.status === "closed").length,
+        // Volumes
+        totalPetrolLitres: totalPetrol,
+        totalDieselLitres: totalDiesel,
+        totalLitres: totalPetrol + totalDiesel,
+        // Collections
+        totalCash,
+        totalDigital,
+        digitalBreakdown,
+        totalCredit,
+        totalCollected,
+        // Computed from stored daily_reports (populated by autoPopulateDailyReport)
+        hasDailyReport: sessions.length > 0,
+      };
+    }),
+
+  // ── Get recent daily activity reports (last N days) ─────────────────────────
+  getRecentDailyActivity: protectedProcedure
+    .input(z.object({ days: z.number().int().min(1).max(90).default(30) }))
+    .query(async ({ input }) => {
+      const results = [];
+      const today = new Date();
+      for (let i = 0; i < input.days; i++) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().slice(0, 10);
+        const sessions = await getSessionsForDate(dateStr);
+        if (sessions.length === 0) continue;
+        let totalPetrol = 0, totalDiesel = 0, totalCollected = 0;
+        for (const session of sessions) {
+          const summary = await getSessionSummary(session.id);
+          totalPetrol  += summary.totalPetrolLitres;
+          totalDiesel  += summary.totalDieselLitres;
+          totalCollected += summary.totalCollected;
+        }
+        results.push({ date: dateStr, totalPetrol, totalDiesel, totalCollected, sessionCount: sessions.length });
+      }
+      return results.reverse(); // chronological order
+    }),
+
   // ── Nozzle data for Reconciliation page integration ────────────────────────
   getNozzleDataForDate: protectedProcedure
     .input(z.object({ shiftDate: safeDate }))

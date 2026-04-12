@@ -360,3 +360,37 @@
 - [x] UI: Printable Cash Deposit Voucher modal — voucher number, station header, per-nozzle breakdown, bank details, instructions, signature line, reconciliation status
 - [x] Navigation: Cash Handover added to sidebar under Operations (Banknote icon)
 - [x] 248 tests passing (no regressions)
+
+## Partial Items Closure Sprint
+- [ ] Fix P&L sidebar route: /pl-reports → /reports (DashboardLayout nav)
+- [ ] Populate daily_reports petrolVolume + dieselVolume from sales_transactions via migration script
+- [ ] Nozzle Payment Mode UI: replace old Cash/Card/Online/Credit with Cash / Digital (UPI,PhonePe,Card,Bank,BHIM) / Credit
+- [ ] Expenses form: add "Cash from Nozzle" payment source with nozzle selector
+- [ ] Bank Statement: visual redesign — transaction type icons, running balance trend chart, colour-coded debit/credit rows
+
+## Daily Activity Report — Auto-Population from Nozzle Sessions
+- [x] autoPopulateDailyReport: fixed to use actual daily retail prices from daily_fuel_prices table (not hardcoded ₹103.41/₹89.14)
+- [x] autoPopulateDailyReport: fixed to use actual WACP from fuel_config.latestCostPrice (not hardcoded margins)
+- [x] Added getDailyActivityReport tRPC procedure: live aggregation from all nozzle sessions for a date
+- [x] Added getRecentDailyActivity tRPC procedure: last N days activity summary for trend chart
+- [x] Built DailyActivity.tsx page: date navigation, KPI strip (petrol/diesel volumes, cash, total), payment breakdown, session details with expandable nozzle rows, 14-day volume trend chart
+- [x] Added "Daily Activity" to sidebar nav (Operations group) with ClipboardList icon
+- [x] Added /daily-activity route to App.tsx
+- [x] Auto-refresh every 30s on the page (live during shift)
+- [x] No manual entry required — all data flows from Nozzle Entry → Session Close → autoPopulateDailyReport
+
+## Expenses — Nozzle Cash Link
+- [x] Added nozzle_id and payment_source columns to expenses Drizzle schema definition
+- [x] Updated expenses create procedure to accept paymentSource and nozzleId
+- [x] Updated Expenses.tsx UI to show payment source selector (Nozzle Cash / Direct Cash / Bank Transfer / Other)
+- [x] When "Nozzle Cash" selected, nozzle dropdown appears to link expense to specific nozzle session
+
+## Bank Statement Visuals
+- [x] Added colour-coded transaction rows (green for deposits, red for withdrawals)
+- [x] Added transaction type icons (Banknote, CreditCard, Smartphone, Landmark)
+- [x] Added running balance area chart
+- [x] Fixed TypeScript null index error in running balance computation
+
+## Tests
+- [x] Added dailyActivity.test.ts: 6 tests covering aggregation logic, empty state, session counting, autoPopulateDailyReport
+- [x] All 254 tests passing

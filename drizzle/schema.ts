@@ -119,6 +119,8 @@ export const expenses = mysqlTable("expenses", {
   paidBy: varchar("paidBy", { length: 100 }),
   approvedBy: varchar("approvedBy", { length: 100 }),
   approvalStatus: mysqlEnum("approvalStatus", ["pending", "approved", "rejected"]).default("approved"),
+  paymentSource: mysqlEnum("payment_source", ["bank", "cash_nozzle", "cash_general"]).default("bank"),
+  nozzleId: int("nozzle_id"),  // FK → nozzles.id — set when paymentSource = 'cash_nozzle'
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

@@ -438,7 +438,40 @@ export async function getEmployeesForNozzle() {
 // Called automatically when a shift is closed. Merges all session data for the
 // day into the daily_reports table so the Reconciliation page can pre-fill.
 
-import { dailyReports } from "../drizzle/schema";
+import { dailyReports, dailyFuelPrices, fuelConfig } from "../drizzle/schema";
+
+/** Fetch the retail price for a fuel type on a given date (or nearest prior date) */
+async function getRetailPrice(db: any, date: string, fuelType: "petrol" | "diesel"): Promise<number> {
+  // Try exact date first
+  const rows = await db
+    .select({ retailPrice: dailyFuelPrices.retailPrice })
+    .from(dailyFuelPrices)
+    .where(and(eq(dailyFuelPrices.priceDate, date), eq(dailyFuelPrices.fuelType, fuelType)))
+    .limit(1);
+  if (rows.length > 0) return Number(rows[0].retailPrice);
+
+  // Fall back to fuel_config current retail price
+  const cfg = await db
+    .select({ retailPrice: fuelConfig.retailPrice })
+    .from(fuelConfig)
+    .where(eq(fuelConfig.fuelType, fuelType))
+    .limit(1);
+  if (cfg.length > 0) return Number(cfg[0].retailPrice);
+
+  // Last resort defaults
+  return fuelType === "petrol" ? 103.41 : 89.14;
+}
+
+/** Fetch the WACP cost price for a fuel type (from fuel_config.latestCostPrice) */
+async function getWacp(db: any, fuelType: "petrol" | "diesel"): Promise<number> {
+  const cfg = await db
+    .select({ cost: fuelConfig.latestCostPrice })
+    .from(fuelConfig)
+    .where(eq(fuelConfig.fuelType, fuelType))
+    .limit(1);
+  if (cfg.length > 0 && cfg[0].cost) return Number(cfg[0].cost);
+  return fuelType === "petrol" ? 99.46 : 86.65;
+}
 
 export async function autoPopulateDailyReport(shiftDate: string) {
   const db = await getDb();
@@ -458,15 +491,16 @@ export async function autoPopulateDailyReport(shiftDate: string) {
     totalCredit  += summary.totalCredit;
   }
 
-  const PETROL_PRICE = 103.41;
-  const DIESEL_PRICE = 89.14;
-  const totalSalesValue = totalPetrol * PETROL_PRICE + totalDiesel * DIESEL_PRICE;
+  // Use actual daily retail prices (not hardcoded)
+  const petrolPrice = await getRetailPrice(db, shiftDate, "petrol");
+  const dieselPrice = await getRetailPrice(db, shiftDate, "diesel");
+  const totalSalesValue = totalPetrol * petrolPrice + totalDiesel * dieselPrice;
   const totalCollected = totalCash + totalCard + totalOnline + totalCredit;
 
-  // Compute gross profit using fixed margins
-  const PETROL_MARGIN = 3.95;
-  const DIESEL_MARGIN = 2.49;
-  const grossProfit = totalPetrol * PETROL_MARGIN + totalDiesel * DIESEL_MARGIN;
+  // Compute gross profit using actual WACP from fuel_config
+  const petrolWacp = await getWacp(db, "petrol");
+  const dieselWacp = await getWacp(db, "diesel");
+  const grossProfit = totalPetrol * (petrolPrice - petrolWacp) + totalDiesel * (dieselPrice - dieselWacp);
 
   const updateData = {
     petrolSalesQty: String(totalPetrol.toFixed(3)),

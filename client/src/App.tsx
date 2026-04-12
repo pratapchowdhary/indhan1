@@ -25,6 +25,7 @@ import NozzleEntry from "./pages/NozzleEntry";
 import FuelPrices from "./pages/FuelPrices";
 import ReceiptScanner from "./pages/ReceiptScanner";
 import CashHandover from "./pages/CashHandover";
+import DailyActivity from "./pages/DailyActivity";
 
 function Router() {
   return (
@@ -50,6 +51,7 @@ function Router() {
         <Route path="/fuel-prices" component={FuelPrices} />
         <Route path="/receipt-scanner" component={ReceiptScanner} />
         <Route path="/cash-handover" component={CashHandover} />
+        <Route path="/daily-activity" component={DailyActivity} />
         <Route component={NotFound} />
       </Switch>
     </DashboardLayout>

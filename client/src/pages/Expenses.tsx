@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import {
   Plus, CheckCircle, Clock, XCircle, Calendar,
-  Wallet, Users, Zap, Coffee, Wrench, Award, ShoppingCart, MoreHorizontal
+  Wallet, Users, Zap, Coffee, Wrench, Award, ShoppingCart, MoreHorizontal, Fuel
 } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -55,6 +55,13 @@ const STATUS_ICON: Record<string, any> = {
   pending:  <Clock className="w-3.5 h-3.5 text-amber-400" />,
 };
 
+// Payment source options
+const PAYMENT_SOURCES = [
+  { value: "bank",         label: "Bank Transfer",     desc: "Paid from bank account" },
+  { value: "cash_general", label: "Cash (General)",    desc: "Petty cash / office cash" },
+  { value: "cash_nozzle",  label: "Cash from Nozzle",  desc: "Deducted from nozzle float" },
+];
+
 export default function Expenses() {
   const [addOpen, setAddOpen] = useState(false);
   const [activePreset, setActivePreset] = useState(0);
@@ -66,12 +73,14 @@ export default function Expenses() {
     category: "Wages",
     description: "",
     amount: "",
-    paymentMethod: "Cash",
+    paymentSource: "bank" as "bank" | "cash_nozzle" | "cash_general",
+    nozzleId: "" as string,
     paidTo: "",
   });
 
   const { data: expenses, refetch } = trpc.expenses.list.useQuery({ startDate, endDate });
   const { data: summary } = trpc.expenses.summary.useQuery({ startDate, endDate });
+  const { data: nozzles } = trpc.nozzle.getNozzles.useQuery();
 
   const createExpense = trpc.expenses.create.useMutation({
     onSuccess: () => { toast.success("Expense recorded"); setAddOpen(false); refetch(); },
@@ -91,6 +100,12 @@ export default function Expenses() {
     }
   }
 
+  // Map modeOfPayment from paymentSource
+  function getModeOfPayment(src: string): "Bank" | "Cash" | "Fuel" | "Online" {
+    if (src === "bank") return "Bank";
+    return "Cash";
+  }
+
   const totalExpenses = expenses?.reduce((s: number, e: any) => s + Number(e.amount ?? 0), 0) ?? 0;
   const approvedTotal = expenses?.filter((e: any) => e.approvalStatus === "approved").reduce((s: number, e: any) => s + Number(e.amount ?? 0), 0) ?? 0;
   const pendingCount = expenses?.filter((e: any) => e.approvalStatus === "pending").length ?? 0;
@@ -108,6 +123,11 @@ export default function Expenses() {
   }, [summary]);
 
   const maxCategoryAmount = categoryData[0]?.amount ?? 1;
+
+  // Nozzle label helper
+  function nozzleLabel(n: any) {
+    return `Pump ${n.pumpNo} — ${n.fuelType === "petrol" ? "Petrol" : "Diesel"}`;
+  }
 
   return (
     <div className="space-y-5">
@@ -133,7 +153,7 @@ export default function Expenses() {
           <DialogTrigger asChild>
             <Button size="sm" className="gap-1.5 h-8"><Plus className="w-3.5 h-3.5" /> Add</Button>
           </DialogTrigger>
-          <DialogContent className="bg-card border-border/50">
+          <DialogContent className="bg-card border-border/50 max-w-md">
             <DialogHeader><DialogTitle>Record Expense</DialogTitle></DialogHeader>
             <div className="space-y-4 pt-2">
               <div className="grid grid-cols-2 gap-3">
@@ -160,28 +180,76 @@ export default function Expenses() {
                   <Label className="text-xs">Paid To</Label>
                   <Input placeholder="Vendor / Person" className="bg-secondary border-border/50 h-8 text-sm" value={form.paidTo} onChange={e => setForm(f => ({ ...f, paidTo: e.target.value }))} />
                 </div>
+
+                {/* Payment Source — 3 tap buttons */}
                 <div className="space-y-1.5 col-span-2">
-                  <Label className="text-xs">Payment Method</Label>
-                  <Select defaultValue="Cash" onValueChange={v => setForm(f => ({ ...f, paymentMethod: v }))}>
-                    <SelectTrigger className="bg-secondary border-border/50 h-8 text-sm"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Cash">Cash</SelectItem>
-                      <SelectItem value="Bank">Bank Transfer</SelectItem>
-                      <SelectItem value="Online">Online / UPI</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-xs">Payment Source</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {PAYMENT_SOURCES.map(ps => (
+                      <button
+                        key={ps.value}
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, paymentSource: ps.value as any, nozzleId: "" }))}
+                        className={`rounded-lg border px-2 py-2 text-left transition-all ${
+                          form.paymentSource === ps.value
+                            ? ps.value === "cash_nozzle"
+                              ? "bg-orange-500/20 border-orange-500/50 text-orange-300"
+                              : ps.value === "cash_general"
+                              ? "bg-green-500/20 border-green-500/50 text-green-300"
+                              : "bg-blue-500/20 border-blue-500/50 text-blue-300"
+                            : "bg-secondary border-border/50 text-muted-foreground hover:border-border"
+                        }`}
+                      >
+                        <p className="text-[11px] font-semibold leading-tight">{ps.label}</p>
+                        <p className="text-[9px] mt-0.5 opacity-70 leading-tight">{ps.desc}</p>
+                      </button>
+                    ))}
+                  </div>
                 </div>
+
+                {/* Nozzle selector — only when Cash from Nozzle */}
+                {form.paymentSource === "cash_nozzle" && (
+                  <div className="space-y-1.5 col-span-2">
+                    <Label className="text-xs text-orange-400 font-semibold flex items-center gap-1">
+                      <Fuel className="w-3 h-3" /> Select Nozzle <span className="text-red-400">*</span>
+                    </Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(nozzles ?? []).map((n: any) => (
+                        <button
+                          key={n.id}
+                          type="button"
+                          onClick={() => setForm(f => ({ ...f, nozzleId: String(n.id) }))}
+                          className={`rounded-lg border px-3 py-2 text-left transition-all ${
+                            form.nozzleId === String(n.id)
+                              ? "bg-orange-500/20 border-orange-500/50 text-orange-300"
+                              : "bg-secondary border-border/50 text-muted-foreground hover:border-orange-500/30"
+                          }`}
+                        >
+                          <p className="text-xs font-semibold">{nozzleLabel(n)}</p>
+                          <p className="text-[9px] opacity-60">Nozzle #{n.id}</p>
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-orange-400/80">Cash will be deducted from this nozzle's float in Cash Handover</p>
+                  </div>
+                )}
               </div>
               <Button className="w-full" onClick={() => {
                 if (!form.description || !form.amount) { toast.error("Fill required fields"); return; }
+                if (form.paymentSource === "cash_nozzle" && !form.nozzleId) {
+                  toast.error("Please select a nozzle for Cash from Nozzle expense");
+                  return;
+                }
                 createExpense.mutate({
                   expenseDate: form.expenseDate,
                   headAccount: "Operating Activities",
                   subHeadAccount: form.category as any,
                   description: form.description,
                   amount: parseFloat(form.amount),
-                  modeOfPayment: form.paymentMethod as any,
+                  modeOfPayment: getModeOfPayment(form.paymentSource),
                   paidBy: form.paidTo || undefined,
+                  paymentSource: form.paymentSource,
+                  nozzleId: form.nozzleId ? parseInt(form.nozzleId) : undefined,
                 });
               }} disabled={createExpense.isPending}>
                 {createExpense.isPending ? "Saving..." : "Record"}
@@ -222,138 +290,121 @@ export default function Expenses() {
             </div>
             <div>
               <p className="text-lg font-bold tabular-nums leading-tight">{pendingCount}</p>
-              <p className="text-[10px] text-muted-foreground">Pending</p>
+              <p className="text-[10px] text-muted-foreground">Pending Approval</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Donut + Category Cards */}
-      {categoryData.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Donut Chart */}
-          <Card className="bg-card border-border/50">
-            <CardContent className="p-5">
-              <ResponsiveContainer width="100%" height={260}>
-                <PieChart>
-                  <Pie
-                    data={categoryData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={70}
-                    outerRadius={105}
-                    paddingAngle={2}
-                    dataKey="amount"
-                    nameKey="name"
-                  >
-                    {categoryData.map((entry: any, i: number) => (
-                      <Cell key={i} fill={entry.color} stroke="transparent" />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(v: any, name: any, props: any) => [
-                      `${fmtCompact(v)} (${props.payload.pct}%)`,
-                      name
-                    ]}
-                    contentStyle={{
-                      background: "oklch(0.17 0.014 240)",
-                      border: "1px solid oklch(0.26 0.016 240)",
-                      borderRadius: "8px",
-                      fontSize: "12px"
-                    }}
-                  />
-                  <Legend
-                    iconType="circle"
-                    iconSize={8}
-                    formatter={(value) => <span style={{ fontSize: 11, color: "oklch(0.65 0.012 240)" }}>{value}</span>}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              {/* Centre label */}
-              <div className="text-center -mt-4">
-                <p className="text-xs text-muted-foreground">Total</p>
-                <p className="text-xl font-bold tabular-nums">{fmtCompact(totalExpenses)}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Category breakdown bars */}
-          <Card className="bg-card border-border/50">
-            <CardContent className="p-5 space-y-3">
-              {categoryData.map((cat: any) => {
-                const Icon = cat.icon;
-                return (
-                  <div key={cat.name} className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-7 h-7 rounded-lg ${cat.bg} flex items-center justify-center`}>
-                          <Icon className="w-3.5 h-3.5" style={{ color: cat.color }} />
-                        </div>
-                        <span className="text-xs font-medium">{cat.name}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold tabular-nums">{fmtCompact(cat.amount)}</span>
-                        <span className="text-[10px] text-muted-foreground w-8 text-right">{cat.pct}%</span>
-                      </div>
+      {/* Category breakdown + chart */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card className="bg-card border-border/50">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-sm font-semibold">By Category</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 space-y-2">
+            {categoryData.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-4">No data for period</p>
+            ) : categoryData.map((c: any) => {
+              const Icon = c.icon;
+              return (
+                <div key={c.name} className="flex items-center gap-2">
+                  <div className={`w-7 h-7 rounded-lg ${c.bg} flex items-center justify-center shrink-0`}>
+                    <Icon className="w-3.5 h-3.5" style={{ color: c.color }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-center mb-0.5">
+                      <span className="text-xs font-medium truncate">{c.name}</span>
+                      <span className="text-xs font-bold tabular-nums ml-2">{fmtCompact(c.amount)}</span>
                     </div>
-                    <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{ width: `${(cat.amount / maxCategoryAmount) * 100}%`, background: cat.bar }}
-                      />
+                    <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all" style={{ width: `${(c.amount / maxCategoryAmount) * 100}%`, background: c.bar }} />
                     </div>
                   </div>
-                );
-              })}
-            </CardContent>
-          </Card>
-        </div>
-      )}
+                  <span className="text-[10px] text-muted-foreground w-8 text-right">{c.pct}%</span>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border/50">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-sm font-semibold">Distribution</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            {categoryData.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-4">No data for period</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={180}>
+                <PieChart>
+                  <Pie data={categoryData} dataKey="amount" nameKey="name" cx="50%" cy="50%" outerRadius={70} innerRadius={35}>
+                    {categoryData.map((c: any, i: number) => <Cell key={i} fill={c.bar} />)}
+                  </Pie>
+                  <Tooltip formatter={(v: any) => fmt(Number(v))} contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }} />
+                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 10 }} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Expense list */}
       <Card className="bg-card border-border/50">
-        <CardHeader className="pb-2 pt-4 px-5 flex flex-row items-center justify-between">
-          <CardTitle className="text-sm font-semibold">{expenses?.length ?? 0} records</CardTitle>
+        <CardHeader className="pb-2 pt-4 px-4">
+          <CardTitle className="text-sm font-semibold">Transactions ({expenses?.length ?? 0})</CardTitle>
         </CardHeader>
         <CardContent className="px-4 pb-4">
-          {expenses && expenses.length > 0 ? (
-            <div className="space-y-1">
-              {expenses.slice(0, 60).map((e: any) => {
+          {!expenses || expenses.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-6">No expenses for this period</p>
+          ) : (
+            <div className="space-y-1.5">
+              {expenses.map((e: any) => {
                 const meta = CATEGORY_META[e.subHeadAccount] ?? DEFAULT_META;
                 const Icon = meta.icon;
+                const isNozzleCash = e.paymentSource === "cash_nozzle";
+                const nozzle = isNozzleCash && nozzles ? nozzles.find((n: any) => n.id === e.nozzleId) : null;
                 return (
-                  <div key={e.id} className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-secondary/40 transition-colors">
+                  <div key={e.id} className="flex items-center gap-3 rounded-lg bg-secondary/40 px-3 py-2.5">
                     <div className={`w-8 h-8 rounded-lg ${meta.bg} flex items-center justify-center shrink-0`}>
                       <Icon className="w-4 h-4" style={{ color: meta.color }} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{e.description}</p>
-                      <p className="text-[10px] text-muted-foreground">{e.expenseDate}</p>
+                      <p className="text-xs font-medium truncate">{e.description}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        <span className="text-[10px] text-muted-foreground">{e.expenseDate}</span>
+                        <span className="text-[10px] text-muted-foreground">·</span>
+                        <span className="text-[10px] text-muted-foreground">{e.subHeadAccount}</span>
+                        {isNozzleCash && (
+                          <Badge variant="outline" className="text-[9px] h-4 px-1.5 border-orange-500/40 text-orange-400 bg-orange-500/10">
+                            <Fuel className="w-2.5 h-2.5 mr-0.5" />
+                            {nozzle ? nozzleLabel(nozzle) : `Nozzle #${e.nozzleId}`}
+                          </Badge>
+                        )}
+                        {e.paymentSource === "cash_general" && (
+                          <Badge variant="outline" className="text-[9px] h-4 px-1.5 border-green-500/40 text-green-400 bg-green-500/10">Cash</Badge>
+                        )}
+                        {e.paymentSource === "bank" && (
+                          <Badge variant="outline" className="text-[9px] h-4 px-1.5 border-blue-500/40 text-blue-400 bg-blue-500/10">Bank</Badge>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-sm font-bold tabular-nums" style={{ color: meta.color }}>
-                        -{fmtCompact(Number(e.amount))}
-                      </span>
-                      {e.approvalStatus === "pending" ? (
-                        <button
-                          className="w-6 h-6 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center hover:bg-amber-500/20 transition-colors"
-                          onClick={() => approveExpense.mutate({ id: e.id, status: "approved", approvedBy: "Kranthi" })}
-                          title="Approve"
-                        >
-                          <Clock className="w-3 h-3 text-amber-400" />
-                        </button>
-                      ) : (
-                        STATUS_ICON[e.approvalStatus] ?? null
-                      )}
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-bold tabular-nums text-red-400">−{fmt(Number(e.amount))}</p>
+                      <div className="flex items-center gap-1 justify-end mt-0.5">
+                        {STATUS_ICON[e.approvalStatus ?? "approved"]}
+                        {e.approvalStatus === "pending" && (
+                          <div className="flex gap-1">
+                            <button onClick={() => approveExpense.mutate({ id: e.id, status: "approved", approvedBy: "Manager" })} className="text-[9px] text-green-400 hover:underline">✓</button>
+                            <button onClick={() => approveExpense.mutate({ id: e.id, status: "rejected", approvedBy: "Manager" })} className="text-[9px] text-red-400 hover:underline">✗</button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
               })}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-12 gap-3 text-muted-foreground">
-              <Wallet className="w-10 h-10 opacity-20" />
-              <p className="text-sm">No expenses</p>
             </div>
           )}
         </CardContent>
