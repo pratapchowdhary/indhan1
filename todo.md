@@ -280,3 +280,8 @@
 - [x] Fuel Intelligence: saveDailyPrice updates fuel_config + products table so margins are always current
 - [x] Add Fuel Prices and Receipt Scanner to sidebar nav under Operations
 - [x] Write vitest tests — 241 total tests passing (20 new fuel prices tests)
+
+## Evaporation Reversal (Fuel Intelligence)
+- [x] Remove evaporation loss from effective margin and stock value calculation
+- [x] Keep evaporation as informational display only (not factored into cost/margin)
+- [x] Update Dashboard UI label to clarify evaporation is for reference only

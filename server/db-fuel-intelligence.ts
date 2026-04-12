@@ -316,13 +316,12 @@ function buildFuelMarginData(
   const grossMarginPerL = effectiveRetailPrice - wacpCostPrice;
   const grossMarginPct = effectiveRetailPrice > 0 ? (grossMarginPerL / effectiveRetailPrice) * 100 : 0;
 
-  // Evaporation
+  // Evaporation — calculated for informational display only, NOT deducted from margin
   const evaporationValue = evaporationLitres * wacpCostPrice;
-  const effectiveProfit = grossProfit - evaporationValue;
-  const effectiveMarginPerL = totalLitresSold > 0
-    ? effectiveProfit / totalLitresSold
-    : grossMarginPerL - (evaporationLitres > 0 ? evaporationValue / Math.max(totalLitresSold, 1) : 0);
-  const effectiveMarginPct = effectiveRetailPrice > 0 ? (effectiveMarginPerL / effectiveRetailPrice) * 100 : 0;
+  // effectiveMargin = grossMargin (evaporation is shown as reference, not factored into margin)
+  const effectiveProfit = grossProfit;  // evaporation NOT deducted
+  const effectiveMarginPerL = grossMarginPerL;  // same as gross margin
+  const effectiveMarginPct = grossMarginPct;    // same as gross margin %
 
   // Stock from dip reading
   const latestDipLitres = latestDip ? Number(latestDip.dip_litres) : null;

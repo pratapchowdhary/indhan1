@@ -273,17 +273,9 @@ export default function Dashboard() {
                     <Fuel className={`w-4 h-4 ${color === "amber" ? "text-amber-400" : "text-blue-400"}`} />
                     <span className={`text-sm font-semibold capitalize ${color === "amber" ? "text-amber-400" : "text-blue-400"}`}>{ft}</span>
                   </div>
-                  <div className="flex items-center gap-4">
-                    {Math.abs(effM - grossM) > 0.01 && (
-                      <div className="text-right">
-                        <p className="text-xs tabular-nums text-muted-foreground line-through">₹{grossM.toFixed(2)}/L</p>
-                        <p className="text-[10px] text-muted-foreground">Gross margin</p>
-                      </div>
-                    )}
-                    <div className="text-right">
-                      <p className={`text-base font-bold tabular-nums ${color === "amber" ? "text-amber-400" : "text-blue-400"}`}>₹{effM.toFixed(2)}/L</p>
-                      <p className="text-[10px] text-muted-foreground">Eff. margin</p>
-                    </div>
+                  <div className="text-right">
+                    <p className={`text-base font-bold tabular-nums ${color === "amber" ? "text-amber-400" : "text-blue-400"}`}>₹{grossM.toFixed(2)}/L</p>
+                    <p className="text-[10px] text-muted-foreground">Gross margin</p>
                   </div>
                 </div>
                 {/* Price breakdown */}
@@ -321,9 +313,9 @@ export default function Dashboard() {
                   <div className="flex items-center gap-2 p-1.5 rounded bg-card/50">
                     <FlaskConical className="w-3 h-3 text-orange-400 shrink-0" />
                     <div>
-                      <p className="text-[10px] text-muted-foreground">Evaporation Loss</p>
+                      <p className="text-[10px] text-muted-foreground">Evaporation <span className="text-[9px] text-muted-foreground/50">(ref only)</span></p>
                       {evapL > 0.01
-                        ? <p className="text-xs font-semibold tabular-nums text-orange-400">{evapL.toFixed(1)}L <span className="text-muted-foreground font-normal">({fmtCompact(evapV)})</span></p>
+                        ? <p className="text-xs tabular-nums text-muted-foreground">{evapL.toFixed(1)}L <span className="text-muted-foreground/60">({fmtCompact(evapV)})</span></p>
                         : <p className="text-xs text-muted-foreground">— (no data yet)</p>
                       }
                     </div>
