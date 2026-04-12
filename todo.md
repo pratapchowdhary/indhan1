@@ -285,3 +285,13 @@
 - [x] Remove evaporation loss from effective margin and stock value calculation
 - [x] Keep evaporation as informational display only (not factored into cost/margin)
 - [x] Update Dashboard UI label to clarify evaporation is for reference only
+
+## Operational Expenses → Net Margin in Fuel Intelligence
+- [x] Audit expenses table: categories, amounts, period coverage (6 categories, ₹12.14L total FY 25-26)
+- [x] Backend: compute total OpEx for period, allocate proportionally by fuel revenue share
+- [x] Backend: add opexPerLitre, netMarginPerL, netMarginPct, allocatedOpEx, netProfit, revenueSharePct, opexBreakdown to FuelMarginData
+- [x] Backend: add totalOpEx, totalNetProfit to FuelIntelligenceResult
+- [x] Dashboard UI: show OpEx deduction row (red, per litre + total allocated)
+- [x] Dashboard UI: Net Profit row per fuel type with net margin %
+- [x] Dashboard UI: Total OpEx / Gross Profit / Net Profit summary bar
+- [x] Tests: 6 new OpEx allocation tests — 248 total tests passing

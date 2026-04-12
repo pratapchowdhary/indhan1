@@ -263,6 +263,13 @@ export default function Dashboard() {
             const retailP = d?.retailPrice ?? (ft === "petrol" ? 103.41 : 89.14);
             const costP = d?.wacpCostPrice ?? (ft === "petrol" ? 99.46 : 86.65);
             const marginPct = d?.grossMarginPct ?? 0;
+            const opexPerL = d?.opexPerLitre ?? 0;
+            const netM = d?.netMarginPerL ?? grossM;
+            const netMPct = d?.netMarginPct ?? 0;
+            const allocOpEx = d?.allocatedOpEx ?? 0;
+            const netProfit = d?.netProfit ?? 0;
+            const revShare = d?.revenueSharePct ?? 0;
+            const opexBreakdown = d?.opexBreakdown ?? [];
             return (
               <div key={ft} className={`p-3 rounded-lg border ${
                 color === "amber" ? "border-amber-500/20 bg-amber-500/5" : "border-blue-500/20 bg-blue-500/5"
@@ -274,8 +281,16 @@ export default function Dashboard() {
                     <span className={`text-sm font-semibold capitalize ${color === "amber" ? "text-amber-400" : "text-blue-400"}`}>{ft}</span>
                   </div>
                   <div className="text-right">
-                    <p className={`text-base font-bold tabular-nums ${color === "amber" ? "text-amber-400" : "text-blue-400"}`}>₹{grossM.toFixed(2)}/L</p>
-                    <p className="text-[10px] text-muted-foreground">Gross margin</p>
+                    <div className="flex items-center gap-2 justify-end">
+                      <div className="text-right">
+                        <p className="text-[10px] tabular-nums text-muted-foreground line-through">₹{grossM.toFixed(2)}/L</p>
+                        <p className="text-[9px] text-muted-foreground/60">Gross</p>
+                      </div>
+                      <div className="text-right">
+                        <p className={`text-base font-bold tabular-nums ${netM >= 0 ? (color === "amber" ? "text-amber-400" : "text-blue-400") : "text-red-400"}`}>₹{netM.toFixed(2)}/L</p>
+                        <p className="text-[10px] text-muted-foreground">Net margin</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 {/* Price breakdown */}
@@ -292,6 +307,22 @@ export default function Dashboard() {
                     <p className="text-[10px] text-muted-foreground">Margin %</p>
                     <p className={`text-xs font-semibold tabular-nums ${color === "amber" ? "text-amber-400" : "text-blue-400"}`}>{marginPct.toFixed(2)}%</p>
                   </div>
+                </div>
+                {/* OpEx deduction row */}
+                <div className="flex items-center justify-between px-2 py-1.5 rounded bg-red-500/5 border border-red-500/10 mb-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] text-red-400/80 font-medium">− OpEx Allocated</span>
+                    <span className="text-[9px] text-muted-foreground/50">({revShare.toFixed(0)}% rev share)</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] tabular-nums text-red-400/80">₹{opexPerL.toFixed(2)}/L</span>
+                    <span className="text-[10px] tabular-nums text-muted-foreground">({fmtCompact(allocOpEx)} total)</span>
+                  </div>
+                </div>
+                {/* Net profit summary */}
+                <div className="flex items-center justify-between px-2 py-1 rounded bg-card/30 mb-2">
+                  <span className="text-[10px] text-muted-foreground">Net Profit ({ft})</span>
+                  <span className={`text-xs font-semibold tabular-nums ${netProfit >= 0 ? "text-green-400" : "text-red-400"}`}>{fmtCompact(netProfit)} <span className="text-[9px] font-normal text-muted-foreground">({netMPct.toFixed(1)}%)</span></span>
                 </div>
                 {/* Stock & Evaporation */}
                 <div className="grid grid-cols-2 gap-2">
@@ -324,6 +355,23 @@ export default function Dashboard() {
               </div>
             );
           })}
+          {/* Total OpEx + Net Profit summary */}
+          {fuelIntel && (
+            <div className="flex items-center justify-between px-3 py-2 rounded-lg border border-border/50 bg-card/50">
+              <div>
+                <p className="text-[10px] text-muted-foreground">Total OpEx (period)</p>
+                <p className="text-xs font-semibold tabular-nums text-red-400">− {fmtCompact(fuelIntel.totalOpEx)}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] text-muted-foreground">Gross Profit</p>
+                <p className="text-xs font-semibold tabular-nums">{fmtCompact(fuelIntel.totalGrossProfit)}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] text-muted-foreground">Net Profit (fuel)</p>
+                <p className={`text-sm font-bold tabular-nums ${fuelIntel.totalNetProfit >= 0 ? "text-green-400" : "text-red-400"}`}>{fmtCompact(fuelIntel.totalNetProfit)}</p>
+              </div>
+            </div>
+          )}
           {/* Lubricants */}
           <div className="flex items-center justify-between p-3 rounded-lg border border-green-500/20 bg-green-500/5">
             <div className="flex items-center gap-2">

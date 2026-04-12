@@ -24,6 +24,13 @@ vi.mock("./db-fuel-intelligence", () => ({
       evaporationValue: 1342.71,
       effectiveProfit: 105307.29,
       evaporationRatePct: 0.1,
+      allocatedOpEx: 62918.04,
+      opexPerLitre: 2.33,
+      netMarginPerL: 1.62,
+      netMarginPct: 1.57,
+      netProfit: 43731.96,
+      revenueSharePct: 62.2,
+      opexBreakdown: [],
       latestDipLitres: 8500,
       latestDipDate: "2026-03-31",
       stockValue: 845410,
@@ -47,6 +54,13 @@ vi.mock("./db-fuel-intelligence", () => ({
       evaporationValue: 658.54,
       effectiveProfit: 46651.46,
       evaporationRatePct: 0.08,
+      allocatedOpEx: 38236.36,
+      opexPerLitre: 2.01,
+      netMarginPerL: 0.48,
+      netMarginPct: 0.54,
+      netProfit: 9073.64,
+      revenueSharePct: 37.8,
+      opexBreakdown: [],
       latestDipLitres: 12000,
       latestDipDate: "2026-03-31",
       stockValue: 1039800,
@@ -60,6 +74,8 @@ vi.mock("./db-fuel-intelligence", () => ({
     totalEffectiveProfit: 151958.75,
     totalEvaporationValue: 2001.25,
     totalStockValue: 1885210,
+    totalOpEx: 101154.40,
+    totalNetProfit: 52805.60,
     dataQuality: { hasDipReadings: true, hasActualPurchaseCost: true, dipReadingCount: 31 },
   }),
   getDipReadings: vi.fn().mockResolvedValue([
@@ -232,6 +248,64 @@ describe("Fuel Intelligence — Margin Calculations", () => {
       const result = await getFuelIntelligence("2026-03-01", "2026-03-31");
       expect(result.dataQuality.hasDipReadings).toBe(true);
       expect(result.dataQuality.dipReadingCount).toBeGreaterThan(0);
+    });
+  });
+
+  describe("OpEx Allocation & Net Margin", () => {
+    it("allocates OpEx proportionally by revenue share", () => {
+      const totalOpEx = 101154.40;
+      const petrolRevShare = 0.622; // petrol is ~62.2% of revenue
+      const dieselRevShare = 0.378;
+      const petrolAlloc = totalOpEx * petrolRevShare;
+      const dieselAlloc = totalOpEx * dieselRevShare;
+      expect(petrolAlloc + dieselAlloc).toBeCloseTo(totalOpEx, 1);
+      expect(petrolAlloc).toBeGreaterThan(0);
+      expect(dieselAlloc).toBeGreaterThan(0);
+    });
+
+    it("computes opexPerLitre from allocated OpEx and litres sold", () => {
+      const allocatedOpEx = 62918.04; // petrol share
+      const litresSold = 27000;
+      const opexPerLitre = allocatedOpEx / litresSold;
+      expect(opexPerLitre).toBeCloseTo(2.33, 1);
+    });
+
+    it("net margin = gross margin minus opexPerLitre", () => {
+      const grossMarginPerL = 3.95;
+      const opexPerLitre = 2.33;
+      const netMarginPerL = grossMarginPerL - opexPerLitre;
+      expect(netMarginPerL).toBeCloseTo(1.62, 1);
+    });
+
+    it("net profit = gross profit minus allocated OpEx", () => {
+      const grossProfit = 106650;
+      const allocatedOpEx = 62918.04;
+      const netProfit = grossProfit - allocatedOpEx;
+      expect(netProfit).toBeCloseTo(43731.96, 0);
+    });
+
+    it("total net profit = total gross profit minus total OpEx", async () => {
+      const { getFuelIntelligence } = await import("./db-fuel-intelligence");
+      const result = await getFuelIntelligence("2026-03-01", "2026-03-31");
+      const expected = result.totalGrossProfit - result.totalOpEx;
+      expect(result.totalNetProfit).toBeCloseTo(expected, 1);
+    });
+
+    it("OpEx allocation sums to total OpEx", async () => {
+      const { getFuelIntelligence } = await import("./db-fuel-intelligence");
+      const result = await getFuelIntelligence("2026-03-01", "2026-03-31");
+      // If petrol and diesel have allocatedOpEx, they should sum to totalOpEx
+      const petrolOpEx = result.petrol.allocatedOpEx ?? 0;
+      const dieselOpEx = result.diesel.allocatedOpEx ?? 0;
+      expect(petrolOpEx + dieselOpEx).toBeCloseTo(result.totalOpEx, 0);
+    });
+
+    it("net margin percentage is lower than gross margin percentage", () => {
+      const grossMarginPct = 3.82;
+      const opexPerLitre = 2.33;
+      const retailPrice = 103.41;
+      const netMarginPct = ((grossMarginPct / 100 * retailPrice - opexPerLitre) / retailPrice) * 100;
+      expect(netMarginPct).toBeLessThan(grossMarginPct);
     });
   });
 

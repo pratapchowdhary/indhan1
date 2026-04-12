@@ -48,8 +48,16 @@ export interface FuelMarginData {
   grossProfit: number;           // totalRevenue − totalCost
   evaporationLitres: number;     // litres lost to evaporation in period
   evaporationValue: number;      // evaporationLitres × wacpCostPrice
-  effectiveProfit: number;       // grossProfit − evaporationValue
+  effectiveProfit: number;       // grossProfit (evaporation ref only)
   evaporationRatePct: number;
+  // OpEx allocation
+  allocatedOpEx: number;         // total OpEx allocated to this fuel type (revenue-proportional)
+  opexPerLitre: number;          // allocatedOpEx / totalLitresSold
+  netMarginPerL: number;         // grossMarginPerL − opexPerLitre
+  netMarginPct: number;          // (netMarginPerL / retailPrice) × 100
+  netProfit: number;             // grossProfit − allocatedOpEx
+  revenueSharePct: number;       // this fuel's revenue as % of total fuel revenue
+  opexBreakdown: Array<{ category: string; amount: number; allocatedAmount: number }>;
   // Stock
   latestDipLitres: number | null;  // from dip_readings (null if not recorded)
   latestDipDate: string | null;
@@ -68,6 +76,8 @@ export interface FuelIntelligenceResult {
   totalEffectiveProfit: number;
   totalEvaporationValue: number;
   totalStockValue: number;
+  totalOpEx: number;             // total operational expenses for the period
+  totalNetProfit: number;        // totalGrossProfit − totalOpEx
   dataQuality: {
     hasDipReadings: boolean;
     hasActualPurchaseCost: boolean;
@@ -176,7 +186,69 @@ export async function getFuelIntelligence(
   `) as any;
   const dipReadingCount = Number((dipCountRows[0] as any[])[0]?.cnt ?? 0);
 
-  // 6. Evaporation calculation
+  // 6. Operational Expenses — fetch by category for the period
+  const opexRows = await db.execute(sql`
+    SELECT
+      COALESCE(subHeadAccount, 'Other') AS category,
+      headAccount,
+      COALESCE(SUM(amount), 0) AS total
+    FROM expenses
+    WHERE expenseDate >= ${startDate}
+      AND expenseDate <= ${endDate}
+    GROUP BY subHeadAccount, headAccount
+    ORDER BY total DESC
+  `) as any;
+
+  const opexCategories: Array<{ category: string; amount: number }> = (opexRows[0] as any[]).map((r: any) => ({
+    category: String(r.category || 'Other'),
+    amount: Number(r.total),
+  }));
+  const totalOpEx = opexCategories.reduce((s, r) => s + r.amount, 0);
+
+  // Revenue-proportional allocation: each fuel type gets OpEx proportional to its revenue share
+  // We need total fuel revenue first — use daily_reports as the authoritative source
+  const drRevenueRows = await db.execute(sql`
+    SELECT
+      COALESCE(SUM(petrolSalesQty), 0) AS petrolLitres,
+      COALESCE(SUM(dieselSalesQty), 0) AS dieselLitres,
+      COALESCE(SUM(totalSalesValue), 0) AS totalRevenue
+    FROM daily_reports
+    WHERE reportDate >= ${startDate} AND reportDate <= ${endDate}
+  `) as any;
+
+  const drRow = (drRevenueRows[0] as any[])[0] ?? {};
+  const drPetrolLitres = Number(drRow.petrolLitres ?? 0);
+  const drDieselLitres = Number(drRow.dieselLitres ?? 0);
+  const drTotalRevenue = Number(drRow.totalRevenue ?? 0);
+
+  // Estimate revenue per fuel type from daily_reports volumes × product prices
+  const petrolRevEstimate = drPetrolLitres * (productPrices.petrol?.retail ?? 108.83);
+  const dieselRevEstimate = drDieselLitres * (productPrices.diesel?.retail ?? 97.10);
+  const totalFuelRevEstimate = petrolRevEstimate + dieselRevEstimate || drTotalRevenue || 1;
+
+  const petrolRevShare = totalFuelRevEstimate > 0 ? petrolRevEstimate / totalFuelRevEstimate : 0.11;
+  const dieselRevShare = totalFuelRevEstimate > 0 ? dieselRevEstimate / totalFuelRevEstimate : 0.89;
+
+  const petrolAllocatedOpEx = totalOpEx * petrolRevShare;
+  const dieselAllocatedOpEx = totalOpEx * dieselRevShare;
+
+  // Build per-category breakdown for each fuel
+  const petrolOpexBreakdown = opexCategories.map(c => ({
+    category: c.category,
+    amount: c.amount,
+    allocatedAmount: parseFloat((c.amount * petrolRevShare).toFixed(2)),
+  }));
+  const dieselOpexBreakdown = opexCategories.map(c => ({
+    category: c.category,
+    amount: c.amount,
+    allocatedAmount: parseFloat((c.amount * dieselRevShare).toFixed(2)),
+  }));
+
+  // Litres sold from daily_reports (more complete than sales_transactions)
+  const petrolLitresForOpex = drPetrolLitres;
+  const dieselLitresForOpex = drDieselLitres;
+
+  // 7. Evaporation calculation
   //    Method A (preferred): Use dip readings — sum daily opening × rate
   //    Method B (fallback): Use purchase received qty as proxy for average stock
   const evapRows = await db.execute(sql`
@@ -221,7 +293,7 @@ export async function getFuelIntelligence(
     evapByFuel.diesel = avgStock * rate * days;
   }
 
-  // 7. Build per-fuel margin data
+  // 8. Build per-fuel margin data
   const petrolData = buildFuelMarginData(
     "petrol",
     configMap["petrol"],
@@ -229,7 +301,11 @@ export async function getFuelIntelligence(
     petrolSales,
     latestPetrolDip,
     evapByFuel.petrol ?? 0,
-    productPrices.petrol
+    productPrices.petrol,
+    petrolAllocatedOpEx,
+    petrolOpexBreakdown,
+    petrolLitresForOpex,
+    petrolRevShare * 100
   );
 
   const dieselData = buildFuelMarginData(
@@ -239,7 +315,11 @@ export async function getFuelIntelligence(
     dieselSales,
     latestDieselDip,
     evapByFuel.diesel ?? 0,
-    productPrices.diesel
+    productPrices.diesel,
+    dieselAllocatedOpEx,
+    dieselOpexBreakdown,
+    dieselLitresForOpex,
+    dieselRevShare * 100
   );
 
   // Lubricant — simpler: use config prices only, no evaporation
@@ -261,6 +341,7 @@ export async function getFuelIntelligence(
   const totalEffectiveProfit = petrolData.effectiveProfit + dieselData.effectiveProfit;
   const totalEvaporationValue = petrolData.evaporationValue + dieselData.evaporationValue;
   const totalStockValue = petrolData.stockValue + dieselData.stockValue;
+  const totalNetProfit = totalGrossProfit - totalOpEx;
 
   return {
     petrol: petrolData,
@@ -272,6 +353,8 @@ export async function getFuelIntelligence(
     totalEffectiveProfit,
     totalEvaporationValue,
     totalStockValue,
+    totalOpEx,
+    totalNetProfit,
     dataQuality: {
       hasDipReadings: dipReadingCount > 0,
       hasActualPurchaseCost: (petrolPurchase?.totalQtyReceived ?? 0) > 0 || (dieselPurchase?.totalQtyReceived ?? 0) > 0,
@@ -288,7 +371,11 @@ function buildFuelMarginData(
   sales: any,
   latestDip: any,
   evaporationLitres: number,
-  productPrice?: { retail: number; cost: number; margin: number }
+  productPrice?: { retail: number; cost: number; margin: number },
+  allocatedOpEx: number = 0,
+  opexBreakdown: Array<{ category: string; amount: number; allocatedAmount: number }> = [],
+  drLitresSold: number = 0,
+  revenueSharePct: number = 0
 ): FuelMarginData {
   // Use products table prices as authoritative source; fall back to fuel_config, then hardcoded defaults
   const retailPrice = productPrice?.retail ?? Number(cfg?.retailPrice ?? (fuelType === "petrol" ? 108.83 : 97.10));
@@ -318,10 +405,17 @@ function buildFuelMarginData(
 
   // Evaporation — calculated for informational display only, NOT deducted from margin
   const evaporationValue = evaporationLitres * wacpCostPrice;
-  // effectiveMargin = grossMargin (evaporation is shown as reference, not factored into margin)
   const effectiveProfit = grossProfit;  // evaporation NOT deducted
-  const effectiveMarginPerL = grossMarginPerL;  // same as gross margin
-  const effectiveMarginPct = grossMarginPct;    // same as gross margin %
+  const effectiveMarginPerL = grossMarginPerL;
+  const effectiveMarginPct = grossMarginPct;
+
+  // OpEx allocation
+  // Use drLitresSold (from daily_reports) as the volume base; fall back to totalLitresSold
+  const litresBase = drLitresSold > 0 ? drLitresSold : totalLitresSold;
+  const opexPerLitre = litresBase > 0 ? allocatedOpEx / litresBase : 0;
+  const netMarginPerL = grossMarginPerL - opexPerLitre;
+  const netMarginPct = effectiveRetailPrice > 0 ? (netMarginPerL / effectiveRetailPrice) * 100 : 0;
+  const netProfit = grossProfit - allocatedOpEx;
 
   // Stock from dip reading
   const latestDipLitres = latestDip ? Number(latestDip.dip_litres) : null;
@@ -348,6 +442,13 @@ function buildFuelMarginData(
     evaporationValue,
     effectiveProfit,
     evaporationRatePct,
+    allocatedOpEx,
+    opexPerLitre,
+    netMarginPerL,
+    netMarginPct,
+    netProfit,
+    revenueSharePct,
+    opexBreakdown,
     latestDipLitres,
     latestDipDate,
     stockValue,
