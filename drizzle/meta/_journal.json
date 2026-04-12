@@ -57,6 +57,13 @@
       "when": 1775976429531,
       "tag": "0007_greedy_namora",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1776000531015,
+      "tag": "0008_unusual_beyonder",
+      "breakpoints": true
     }
   ]
 }

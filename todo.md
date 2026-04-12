@@ -344,3 +344,19 @@
 - [ ] UI: When Digital selected — show sub-type row: UPI | PhonePe | Card | Bank Transfer | BHIM
 - [ ] UI: Session summary Step 5 — per-nozzle table: Cash | Digital | Credit columns with totals
 - [ ] UI: Session summary — highlight cash column (green) for easy physical count verification
+
+## Cash Handover & Deposit Voucher Module — COMPLETE
+- [x] DB: cash_handover_sessions table (date, nozzle_id, cash_collected, cash_expenses, net_cash, confirmed_at, confirmed_by, actual_amount)
+- [x] DB: cash_deposit_vouchers table (voucher_number, date, total_amount, float_retained, deposit_amount, bank_account, instructions, status: draft|finalised, bank_transaction_id for reconciliation)
+- [x] DB: migrated and applied
+- [x] tRPC: getCashHandoverSummary(date) — per nozzle: cash sales, cash expenses, net to collect
+- [x] tRPC: confirmNozzleCollection(nozzleId, date, actualAmount) — manager confirms per nozzle
+- [x] tRPC: finaliseHandover(date, floatRetained) — deposit amount = total confirmed − float retained
+- [x] tRPC: generateDepositVoucher(date) — numbered voucher with bank instructions
+- [x] tRPC: getVoucherHistory — list with status and reconciliation state
+- [x] tRPC: matchVoucherToBankEntry(voucherId, bankTransactionId) — link voucher to bank statement
+- [x] tRPC: autoMatchVouchers(date) — auto-match by amount + date proximity
+- [x] UI: Cash Handover page (/cash-handover) — per-nozzle confirm cards, running total bar, deposit summary
+- [x] UI: Printable Cash Deposit Voucher modal — voucher number, station header, per-nozzle breakdown, bank details, instructions, signature line, reconciliation status
+- [x] Navigation: Cash Handover added to sidebar under Operations (Banknote icon)
+- [x] 248 tests passing (no regressions)

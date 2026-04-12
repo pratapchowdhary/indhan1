@@ -709,3 +709,50 @@ export const scannedReceipts = mysqlTable("scanned_receipts", {
 });
 export type ScannedReceipt = typeof scannedReceipts.$inferSelect;
 export type InsertScannedReceipt = typeof scannedReceipts.$inferInsert;
+
+// ─── Cash Handover Sessions ───────────────────────────────────────────────────
+// Tracks per-nozzle cash collection confirmed by the manager at end of day.
+// net_cash = cash_collected (from nozzle sales) − cash_expenses (petty cash drawn from nozzle)
+export const cashHandoverSessions = mysqlTable("cash_handover_sessions", {
+  id: int("id").autoincrement().primaryKey(),
+  handoverDate: varchar("handover_date", { length: 10 }).notNull(),  // YYYY-MM-DD
+  nozzleId: int("nozzle_id").notNull(),                              // FK → nozzles.id
+  cashCollected: decimal("cash_collected", { precision: 14, scale: 2 }).notNull().default("0"),  // from nozzle sales
+  cashExpenses: decimal("cash_expenses", { precision: 14, scale: 2 }).notNull().default("0"),    // petty cash drawn
+  netCash: decimal("net_cash", { precision: 14, scale: 2 }).notNull().default("0"),              // collected − expenses
+  actualAmount: decimal("actual_amount", { precision: 14, scale: 2 }),  // physically counted by manager
+  variance: decimal("variance", { precision: 14, scale: 2 }),           // actual − net_cash
+  confirmedAt: timestamp("confirmedAt"),
+  confirmedBy: varchar("confirmed_by", { length: 100 }),
+  depositVoucherId: int("deposit_voucher_id"),                          // FK → cash_deposit_vouchers.id (set after voucher created)
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type CashHandoverSession = typeof cashHandoverSessions.$inferSelect;
+export type InsertCashHandoverSession = typeof cashHandoverSessions.$inferInsert;
+
+// ─── Cash Deposit Vouchers ────────────────────────────────────────────────────
+// Generated after manager confirms all nozzle collections.
+// Voucher is taken to the bank; matched against bank statement on receipt.
+export const cashDepositVouchers = mysqlTable("cash_deposit_vouchers", {
+  id: int("id").autoincrement().primaryKey(),
+  voucherNumber: varchar("voucher_number", { length: 30 }).notNull().unique(), // CDV-YYYYMMDD-NNN
+  voucherDate: varchar("voucher_date", { length: 10 }).notNull(),              // YYYY-MM-DD
+  totalCashCollected: decimal("total_cash_collected", { precision: 14, scale: 2 }).notNull(),
+  totalCashExpenses: decimal("total_cash_expenses", { precision: 14, scale: 2 }).notNull().default("0"),
+  floatRetained: decimal("float_retained", { precision: 14, scale: 2 }).notNull().default("0"),
+  depositAmount: decimal("deposit_amount", { precision: 14, scale: 2 }).notNull(), // = collected − expenses − float
+  bankAccount: varchar("bank_account", { length: 200 }),                       // bank name + account number
+  depositInstructions: text("deposit_instructions"),                            // printed on voucher
+  status: mysqlEnum("status", ["draft", "finalised", "deposited", "reconciled"]).default("draft").notNull(),
+  // Bank reconciliation link
+  bankTransactionId: int("bank_transaction_id"),                               // FK → bank_transactions.id (set when matched)
+  reconciledAt: timestamp("reconciledAt"),
+  reconciledBy: varchar("reconciled_by", { length: 100 }),
+  generatedBy: varchar("generated_by", { length: 100 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type CashDepositVoucher = typeof cashDepositVouchers.$inferSelect;
+export type InsertCashDepositVoucher = typeof cashDepositVouchers.$inferInsert;

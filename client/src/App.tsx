@@ -24,6 +24,7 @@ import StaffPortal from "./pages/StaffPortal";
 import NozzleEntry from "./pages/NozzleEntry";
 import FuelPrices from "./pages/FuelPrices";
 import ReceiptScanner from "./pages/ReceiptScanner";
+import CashHandover from "./pages/CashHandover";
 
 function Router() {
   return (
@@ -48,6 +49,7 @@ function Router() {
         <Route path="/nozzle-entry" component={NozzleEntry} />
         <Route path="/fuel-prices" component={FuelPrices} />
         <Route path="/receipt-scanner" component={ReceiptScanner} />
+        <Route path="/cash-handover" component={CashHandover} />
         <Route component={NotFound} />
       </Switch>
     </DashboardLayout>

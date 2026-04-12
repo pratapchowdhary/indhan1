@@ -22,6 +22,7 @@ import { attendanceRouter } from "./routers/attendanceRouter";
 import { nozzleRouter } from "./routers/nozzleRouter";
 import { fuelIntelligenceRouter } from "./routers/fuelIntelligenceRouter";
 import { fuelPricesRouter } from "./routers/fuelPricesRouter";
+import { cashHandoverRouter } from "./routers/cashHandoverRouter";
 
 // ─── Shared date range input ──────────────────────────────────────────────────
 // Enforce YYYY-MM-DD format to prevent SQL injection via date parameters
@@ -425,6 +426,7 @@ export const appRouter = router({
   nozzle: nozzleRouter,
   fuelIntelligence: fuelIntelligenceRouter,
   fuelPrices: fuelPricesRouter,
+  cashHandover: cashHandoverRouter,
 });
 
 export type AppRouter = typeof appRouter;
