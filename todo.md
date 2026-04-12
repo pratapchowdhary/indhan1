@@ -475,3 +475,10 @@
 - [x] People group: Employees, Attendance & Payroll, Biometric Attendance (3 items)
 - [x] Setup group: Assets & Equipment, Import Data, Settings, About Station (4 items)
 - [x] Updated DashboardLayout.tsx with new 5-group simplified structure
+
+## Dashboard — Stock Overview Widget
+- [x] Replace "Inventory Alerts" widget on Dashboard with full stock gauge cards (Fuel + Lubricants sections)
+- [x] Show circular fill gauge, product name, stock qty, status badge (Good/Low/Critical), Min level, price/litre
+- [x] Fuel section: Diesel (HSD) and Petrol (MS) side by side
+- [x] Lubricants section: ADON-Oil, Servo 2T, Servo 4T in a row (compact gauge cards)
+- [x] Low stock badge count shown in widget header (red badge)

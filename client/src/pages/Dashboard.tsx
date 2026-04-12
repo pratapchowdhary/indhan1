@@ -19,6 +19,54 @@ import { fmtCompact, fmtFull } from "@/lib/format";
 import { STATION_SHORT_NAME } from "@shared/const";
 import { StatCard } from "@/components/StatCard";
 
+// ─── Stock gauge helpers (reused from Inventory page) ─────────────────────
+function DashCircleGauge({ pct, color, size = 64 }: { pct: number; color: string; size?: number }) {
+  const r = (size - 8) / 2;
+  const circ = 2 * Math.PI * r;
+  const dash = (pct / 100) * circ;
+  return (
+    <svg width={size} height={size} className="rotate-[-90deg]">
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="oklch(0.22 0.014 240)" strokeWidth={7} />
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={7}
+        strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
+        style={{ transition: "stroke-dasharray 0.6s ease" }} />
+    </svg>
+  );
+}
+function DashStockCard({ product, compact = false }: { product: any; compact?: boolean }) {
+  const current = Number(product.currentStock ?? 0);
+  const min = Number(product.reorderLevel ?? 0);
+  const max = Number(product.maxStockLevel ?? (product.category === 'fuel' ? 20000 : 200));
+  const pct = max > 0 ? Math.min(100, Math.max(0, (current / max) * 100)) : 0;
+  const isCritical = current <= min;
+  const isLow = !isCritical && pct < 35;
+  const color = isCritical ? "#ef4444" : isLow ? "#f59e0b" : "#22c55e";
+  const statusText = isCritical ? "Critical" : isLow ? "Low" : "Good";
+  const statusBg = isCritical ? "bg-red-500/10 text-red-400 border-red-500/20" : isLow ? "bg-amber-500/10 text-amber-400 border-amber-500/20" : "bg-green-500/10 text-green-400 border-green-500/20";
+  const size = compact ? 52 : 64;
+  return (
+    <div className={`rounded-xl border p-3 flex flex-col items-center gap-1.5 bg-card/50 ${
+      isCritical ? 'border-red-500/30' : 'border-border/40'
+    }`}>
+      <div className="relative" style={{ width: size, height: size }}>
+        <DashCircleGauge pct={pct} color={color} size={size} />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="font-bold tabular-nums leading-none" style={{ color, fontSize: compact ? 11 : 13 }}>{Math.round(pct)}%</span>
+        </div>
+      </div>
+      <p className={`font-semibold text-center leading-tight ${compact ? 'text-[10px]' : 'text-xs'}`}>{product.name}</p>
+      <p className={`font-bold tabular-nums ${compact ? 'text-sm' : 'text-base'}`}>{current.toLocaleString("en-IN")}</p>
+      <p className="text-[9px] text-muted-foreground -mt-1">{product.unit}</p>
+      <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-full border ${statusBg}`}>{statusText}</span>
+      <div className="w-full flex justify-between text-[9px] text-muted-foreground pt-1 border-t border-border/20">
+        <span>Min {min.toLocaleString("en-IN")}</span>
+        <span>₹{Number(product.sellingPrice).toLocaleString("en-IN")}/{product.unit}</span>
+      </div>
+    </div>
+  );
+}
+// ───────────────────────────────────────────────────────────────────────────
+
 const EXPENSE_COLORS = [
   "oklch(0.60 0.22 25)",
   "oklch(0.65 0.18 250)",
@@ -89,6 +137,7 @@ export default function Dashboard() {
     }
   }
   const { data: lowStock } = trpc.inventory.lowStock.useQuery();
+  const { data: allProducts } = trpc.inventory.list.useQuery();
   const { data: topCustomers } = trpc.customers.topByOutstanding.useQuery();
   const { data: expenseBreakdown } = trpc.dashboard.expenseBreakdown.useQuery({ startDate, endDate });
   const { data: fuelIntel } = trpc.fuelIntelligence.getIntelligence.useQuery({ startDate, endDate });
@@ -564,35 +613,40 @@ export default function Dashboard() {
           <CardHeader className="pb-3 pt-4 px-5">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Package className="w-4 h-4 text-teal-400" /> Inventory Alerts
+                <Package className="w-4 h-4 text-teal-400" /> Stock Overview
               </CardTitle>
               {lowStock && lowStock.length > 0 && (
-                <Badge className="bg-teal-500/15 text-teal-400 border-teal-500/20 text-[10px]">{lowStock.length} low</Badge>
+                <Badge className="bg-red-500/15 text-red-400 border-red-500/20 text-[10px]">{lowStock.length} low stock</Badge>
               )}
             </div>
           </CardHeader>
-          <CardContent className="px-5 pb-4 space-y-2">
-            {lowStock && lowStock.length > 0 ? lowStock.slice(0, 4).map((item: any) => (
-              <div key={item.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
-                <div>
-                  <p className="text-sm font-medium">{item.name}</p>
-                  <p className="text-xs text-muted-foreground">{item.category}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-semibold tabular-nums text-teal-400">{item.currentStock} {item.unit}</p>
-                  <p className="text-[10px] text-muted-foreground">Min: {item.minStockLevel} {item.unit}</p>
-                </div>
-              </div>
-            )) : (
-              <div className="flex items-center gap-3 py-4 justify-center">
-                <div className="w-8 h-8 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center">
-                  <Package className="w-4 h-4 text-green-400" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-green-400">All stock levels healthy</p>
-                  <p className="text-xs text-muted-foreground">No alerts at this time</p>
+          <CardContent className="px-4 pb-4 space-y-4">
+            {allProducts && allProducts.filter((p: any) => p.category === 'fuel').length > 0 && (
+              <div>
+                <p className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-widest mb-2 flex items-center gap-1">
+                  <Droplets className="w-3 h-3" /> Fuel
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  {allProducts.filter((p: any) => p.category === 'fuel').map((product: any) => (
+                    <DashStockCard key={product.id} product={product} />
+                  ))}
                 </div>
               </div>
+            )}
+            {allProducts && allProducts.filter((p: any) => p.category === 'lubricant').length > 0 && (
+              <div>
+                <p className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-widest mb-2 flex items-center gap-1">
+                  <FlaskConical className="w-3 h-3" /> Lubricants
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  {allProducts.filter((p: any) => p.category === 'lubricant').map((product: any) => (
+                    <DashStockCard key={product.id} product={product} compact />
+                  ))}
+                </div>
+              </div>
+            )}
+            {!allProducts && (
+              <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">Loading stock...</div>
             )}
           </CardContent>
         </Card>
