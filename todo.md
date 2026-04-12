@@ -295,3 +295,19 @@
 - [x] Dashboard UI: Net Profit row per fuel type with net margin %
 - [x] Dashboard UI: Total OpEx / Gross Profit / Net Profit summary bar
 - [x] Tests: 6 new OpEx allocation tests — 248 total tests passing
+
+## Receipt Scanner Enhancement — COMPLETE
+- [x] Backend: strengthened LLM extraction prompt with Indian receipt patterns (HPCL/BPCL/IOC/Nayara, KL→L conversion, MT→L conversion)
+- [x] Backend: on confirmReceipt — cascade cost update to fuel_config, products table, daily_fuel_prices
+- [x] Backend: notify owner on successful scan (receipt details + cost change delta + new margin)
+- [x] Backend: add rescanReceipt procedure (re-run LLM on existing S3 image)
+- [x] Backend: per-field confidence scores returned in fieldConfidence object
+- [x] Backend: currentCostPrice returned for cost delta preview
+- [x] Backend: confirmReceipt returns costDelta, oldCostPrice, newCostPrice, oldMargin, newMargin
+- [x] UI: drag-drop + camera capture, image preview before scanning
+- [x] UI: per-field confidence badges (green/amber/red % next to each field label)
+- [x] UI: re-scan button in review header (re-runs LLM on same image)
+- [x] UI: cost impact preview panel (old cost → delta → new cost with trend arrows)
+- [x] UI: confirmed screen shows cost change summary + updated margin
+- [x] UI: scan history sidebar with status badges, confidence bars, PO links
+- [x] 248 tests passing (no regressions)

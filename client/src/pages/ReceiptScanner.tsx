@@ -12,7 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import {
   Upload, Camera, Scan, CheckCircle2, XCircle, AlertTriangle,
   FileText, Fuel, IndianRupee, Calendar, Hash, Building2,
-  RotateCcw, History, Loader2, ChevronRight,
+  RotateCcw, History, Loader2, ChevronRight, RefreshCw,
+  TrendingUp, TrendingDown,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { fmtCompact } from "@/lib/format";
@@ -30,7 +31,18 @@ interface ExtractedData {
   totalAmount: number | null;
   taxAmount: number | null;
   confidenceScore: number | null;
+  fieldConfidence?: Record<string, number>;
   notes: string | null;
+}
+
+interface ConfirmResult {
+  purchaseOrderId: number;
+  costDelta: number | null;
+  oldCostPrice: number | null;
+  newCostPrice: number;
+  oldMargin: number | null;
+  newMargin: number | null;
+  message: string;
 }
 
 export default function ReceiptScanner() {
@@ -39,6 +51,9 @@ export default function ReceiptScanner() {
   const [receiptId, setReceiptId] = useState<number | null>(null);
   const [extracted, setExtracted] = useState<ExtractedData | null>(null);
   const [confirmedPoId, setConfirmedPoId] = useState<number | null>(null);
+  const [confirmResult, setConfirmResult] = useState<ConfirmResult | null>(null);
+  const [currentCostPrice, setCurrentCostPrice] = useState<number | null>(null);
+  const [fieldConfidence, setFieldConfidence] = useState<Record<string, number> | null>(null);
 
   // Editable form state (pre-filled from AI, editable by staff)
   const [form, setForm] = useState({
@@ -56,25 +71,35 @@ export default function ReceiptScanner() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const utils = trpc.useUtils();
 
+  const applyExtracted = (data: { extracted: any; currentCostPrice?: number | null; fieldConfidence?: Record<string, number> | null }) => {
+    if (data.currentCostPrice != null) setCurrentCostPrice(data.currentCostPrice);
+    if (data.fieldConfidence) setFieldConfidence(data.fieldConfidence);
+    if (data.extracted) {
+      const e = data.extracted as ExtractedData;
+      setExtracted(e);
+      if (e.fieldConfidence) setFieldConfidence(e.fieldConfidence);
+      setForm({
+        supplierName: e.supplierName ?? "",
+        invoiceNumber: e.invoiceNumber ?? "",
+        invoiceDate: e.invoiceDate ?? new Date().toISOString().slice(0, 10),
+        fuelType: (e.fuelType as any) ?? "diesel",
+        quantityLitres: e.quantityLitres ? String(e.quantityLitres) : "",
+        unitPrice: e.unitPrice ? String(e.unitPrice) : "",
+        totalAmount: e.totalAmount ? String(e.totalAmount) : "",
+        taxAmount: e.taxAmount ? String(e.taxAmount) : "0",
+        notes: e.notes ?? "",
+      });
+    }
+  };
+
   const scanMutation = trpc.fuelPrices.uploadAndScanReceipt.useMutation({
     onSuccess: (data) => {
       setReceiptId(data.receiptId);
+      applyExtracted(data as any);
       if (data.extracted) {
-        const e = data.extracted as ExtractedData;
-        setExtracted(e);
-        setForm({
-          supplierName: e.supplierName ?? "",
-          invoiceNumber: e.invoiceNumber ?? "",
-          invoiceDate: e.invoiceDate ?? new Date().toISOString().slice(0, 10),
-          fuelType: (e.fuelType as any) ?? "diesel",
-          quantityLitres: e.quantityLitres ? String(e.quantityLitres) : "",
-          unitPrice: e.unitPrice ? String(e.unitPrice) : "",
-          totalAmount: e.totalAmount ? String(e.totalAmount) : "",
-          taxAmount: e.taxAmount ? String(e.taxAmount) : "0",
-          notes: e.notes ?? "",
-        });
         setStep("review");
-        toast.success("Receipt scanned successfully! Please review the extracted data.");
+        const score = (data.extracted as any).confidenceScore ?? 0;
+        toast.success(`Receipt scanned — ${score}% AI confidence`);
       } else {
         toast.error("Could not extract data from receipt. Please fill in manually.");
         setStep("review");
@@ -86,9 +111,19 @@ export default function ReceiptScanner() {
     },
   });
 
+  const rescanMutation = trpc.fuelPrices.rescanReceipt.useMutation({
+    onSuccess: (data) => {
+      applyExtracted(data as any);
+      const score = (data.extracted as any)?.confidenceScore ?? 0;
+      toast.success(`Re-scanned — ${score}% AI confidence`);
+    },
+    onError: (err) => toast.error(`Re-scan failed: ${err.message}`),
+  });
+
   const confirmMutation = trpc.fuelPrices.confirmReceipt.useMutation({
     onSuccess: (data) => {
       setConfirmedPoId(data.purchaseOrderId);
+      setConfirmResult(data as unknown as ConfirmResult);
       setStep("confirmed");
       utils.fuelPrices.getReceipts.invalidate();
       utils.fuelIntelligence.getIntelligence.invalidate();
@@ -163,8 +198,24 @@ export default function ReceiptScanner() {
     setReceiptId(null);
     setExtracted(null);
     setConfirmedPoId(null);
+    setConfirmResult(null);
+    setCurrentCostPrice(null);
+    setFieldConfidence(null);
     setForm({ supplierName: "", invoiceNumber: "", invoiceDate: "", fuelType: "diesel", quantityLitres: "", unitPrice: "", totalAmount: "", taxAmount: "0", notes: "" });
   };
+
+  // Per-field confidence helper
+  const fc = (field: string) => fieldConfidence?.[field];
+  const fcBadge = (field: string) => {
+    const s = fc(field);
+    if (s == null) return null;
+    const cls = s >= 85 ? "text-green-400" : s >= 65 ? "text-amber-400" : "text-red-400";
+    return <span className={`text-[10px] font-medium ml-1 ${cls}`}>{s}%</span>;
+  };
+
+  // Cost delta preview
+  const newCostInput = parseFloat(form.unitPrice) || null;
+  const costDeltaPreview = newCostInput != null && currentCostPrice != null ? newCostInput - currentCostPrice : null;
 
   const confidenceColor = (score: number | null) => {
     if (!score) return "text-muted-foreground";
@@ -299,29 +350,53 @@ export default function ReceiptScanner() {
           {/* Editable form */}
           <Card className="bg-card border-border/50">
             <CardHeader className="pb-2 pt-4 px-5">
-              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                <Scan className="w-4 h-4 text-primary" /> Extracted Data — Review & Edit
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                  <Scan className="w-4 h-4 text-primary" /> Extracted Data — Review & Edit
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  {extracted?.confidenceScore != null && (
+                    <span className={`text-xs font-semibold ${confidenceColor(extracted.confidenceScore)}`}>
+                      {extracted.confidenceScore.toFixed(0)}% confidence
+                    </span>
+                  )}
+                  {receiptId && (
+                    <button
+                      onClick={() => rescanMutation.mutate({ receiptId })}
+                      disabled={rescanMutation.isPending}
+                      className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground border border-border/40 rounded px-2 py-0.5 transition-colors"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${rescanMutation.isPending ? "animate-spin" : ""}`} />
+                      Re-scan
+                    </button>
+                  )}
+                </div>
+              </div>
+              {extracted?.notes && (
+                <p className="text-[11px] text-amber-400/80 mt-1 flex items-start gap-1">
+                  <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" /> {extracted.notes}
+                </p>
+              )}
             </CardHeader>
             <CardContent className="px-5 pb-5 space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground flex items-center gap-1"><Building2 className="w-3 h-3" /> Supplier <span className="text-red-400">*</span></Label>
+                  <Label className="text-xs text-muted-foreground flex items-center gap-1"><Building2 className="w-3 h-3" /> Supplier <span className="text-red-400">*</span>{fcBadge("supplierName")}</Label>
                   <Input value={form.supplierName} onChange={e => setForm(f => ({ ...f, supplierName: e.target.value }))} placeholder="e.g. HPCL" className="h-9 text-sm" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground flex items-center gap-1"><Hash className="w-3 h-3" /> Invoice No. <span className="text-red-400">*</span></Label>
+                  <Label className="text-xs text-muted-foreground flex items-center gap-1"><Hash className="w-3 h-3" /> Invoice No. <span className="text-red-400">*</span>{fcBadge("invoiceNumber")}</Label>
                   <Input value={form.invoiceNumber} onChange={e => setForm(f => ({ ...f, invoiceNumber: e.target.value }))} placeholder="Invoice number" className="h-9 text-sm" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Invoice Date <span className="text-red-400">*</span></Label>
+                  <Label className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Invoice Date <span className="text-red-400">*</span>{fcBadge("invoiceDate")}</Label>
                   <Input type="date" value={form.invoiceDate} onChange={e => setForm(f => ({ ...f, invoiceDate: e.target.value }))} className="h-9 text-sm" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground flex items-center gap-1"><Fuel className="w-3 h-3" /> Fuel Type <span className="text-red-400">*</span></Label>
+                  <Label className="text-xs text-muted-foreground flex items-center gap-1"><Fuel className="w-3 h-3" /> Fuel Type <span className="text-red-400">*</span>{fcBadge("fuelType")}</Label>
                   <select
                     value={form.fuelType}
                     onChange={e => setForm(f => ({ ...f, fuelType: e.target.value as any }))}
@@ -336,15 +411,15 @@ export default function ReceiptScanner() {
 
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Quantity (L) <span className="text-red-400">*</span></Label>
+                  <Label className="text-xs text-muted-foreground">Quantity (L) <span className="text-red-400">*</span>{fcBadge("quantityLitres")}</Label>
                   <Input type="number" step="0.001" min="0" value={form.quantityLitres} onChange={e => setForm(f => ({ ...f, quantityLitres: e.target.value }))} placeholder="e.g. 9460" className="h-9 text-sm" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Unit Price ₹/L <span className="text-red-400">*</span></Label>
+                  <Label className="text-xs text-muted-foreground">Unit Price ₹/L <span className="text-red-400">*</span>{fcBadge("unitPrice")}</Label>
                   <Input type="number" step="0.0001" min="0" value={form.unitPrice} onChange={e => setForm(f => ({ ...f, unitPrice: e.target.value }))} placeholder="e.g. 94.61" className="h-9 text-sm" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Total Amount ₹ <span className="text-red-400">*</span></Label>
+                  <Label className="text-xs text-muted-foreground">Total Amount ₹ <span className="text-red-400">*</span>{fcBadge("totalAmount")}</Label>
                   <Input type="number" step="0.01" min="0" value={form.totalAmount} onChange={e => setForm(f => ({ ...f, totalAmount: e.target.value }))} placeholder="e.g. 895012" className="h-9 text-sm" />
                 </div>
               </div>
@@ -359,6 +434,30 @@ export default function ReceiptScanner() {
                   <Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Optional notes" className="h-9 text-sm" />
                 </div>
               </div>
+
+              {/* Cost impact preview */}
+              {costDeltaPreview !== null && form.fuelType !== "lubricant" && (
+                <div className={`p-3 rounded-lg border ${Math.abs(costDeltaPreview) < 0.01 ? "border-border/30 bg-muted/10" : costDeltaPreview > 0 ? "border-red-500/20 bg-red-500/5" : "border-green-500/20 bg-green-500/5"}`}>
+                  <p className="text-[10px] font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Cost Impact Preview</p>
+                  <div className="flex items-center justify-between">
+                    <div className="text-center">
+                      <p className="text-[10px] text-muted-foreground">Current Cost</p>
+                      <p className="text-sm font-bold tabular-nums">₹{currentCostPrice?.toFixed(2) ?? "—"}/L</p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {costDeltaPreview > 0.01 ? <TrendingUp className="w-4 h-4 text-red-400" /> : costDeltaPreview < -0.01 ? <TrendingDown className="w-4 h-4 text-green-400" /> : <span className="text-xs text-muted-foreground">→</span>}
+                      <span className={`text-xs font-semibold tabular-nums ${costDeltaPreview > 0.01 ? "text-red-400" : costDeltaPreview < -0.01 ? "text-green-400" : "text-muted-foreground"}`}>
+                        {costDeltaPreview >= 0 ? "+" : ""}₹{costDeltaPreview.toFixed(2)}/L
+                      </span>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-[10px] text-muted-foreground">New Cost</p>
+                      <p className="text-sm font-bold tabular-nums">₹{newCostInput?.toFixed(2) ?? "—"}/L</p>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1.5 text-center">Confirming will update Fuel Intelligence margins automatically</p>
+                </div>
+              )}
 
               {/* Calculated summary */}
               {form.quantityLitres && form.unitPrice && (
@@ -402,16 +501,43 @@ export default function ReceiptScanner() {
       {/* ─── STEP 4: Confirmed ──────────────────────────────────────────────── */}
       {step === "confirmed" && (
         <Card className="bg-card border-green-500/20 bg-green-500/5">
-          <CardContent className="px-5 py-10 flex flex-col items-center gap-5">
+          <CardContent className="px-5 py-8 flex flex-col items-center gap-5">
             <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center">
               <CheckCircle2 className="w-8 h-8 text-green-400" />
             </div>
             <div className="text-center">
               <p className="text-lg font-bold text-green-400">Purchase Order Created!</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Purchase Order #{confirmedPoId} has been created and the cost price has been updated in Fuel Intelligence.
-              </p>
+              <p className="text-sm text-muted-foreground mt-1">{confirmResult?.message ?? `PO #${confirmedPoId} created`}</p>
             </div>
+            {confirmResult && (
+              <div className="w-full grid grid-cols-3 gap-3">
+                <div className="p-2.5 rounded-lg bg-muted/20 text-center">
+                  <p className="text-[10px] text-muted-foreground">Old Cost</p>
+                  <p className="text-sm font-bold tabular-nums">₹{confirmResult.oldCostPrice?.toFixed(2) ?? "—"}/L</p>
+                </div>
+                <div className={`p-2.5 rounded-lg text-center ${(confirmResult.costDelta ?? 0) > 0 ? "bg-red-500/10" : "bg-green-500/10"}`}>
+                  <p className="text-[10px] text-muted-foreground">Change</p>
+                  <p className={`text-sm font-bold tabular-nums ${(confirmResult.costDelta ?? 0) > 0 ? "text-red-400" : "text-green-400"}`}>
+                    {confirmResult.costDelta != null ? `${confirmResult.costDelta >= 0 ? "+" : ""}₹${confirmResult.costDelta.toFixed(2)}/L` : "—"}
+                  </p>
+                </div>
+                <div className="p-2.5 rounded-lg bg-muted/20 text-center">
+                  <p className="text-[10px] text-muted-foreground">New Cost</p>
+                  <p className="text-sm font-bold tabular-nums">₹{confirmResult.newCostPrice.toFixed(2)}/L</p>
+                </div>
+              </div>
+            )}
+            {confirmResult?.newMargin != null && (
+              <div className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-muted/20">
+                <span className="text-xs text-muted-foreground">Updated Gross Margin</span>
+                <span className={`text-sm font-bold tabular-nums ${confirmResult.newMargin >= 0 ? "text-green-400" : "text-red-400"}`}>
+                  ₹{confirmResult.newMargin.toFixed(2)}/L
+                  {confirmResult.oldMargin != null && (
+                    <span className="text-[10px] font-normal text-muted-foreground ml-1">(was ₹{confirmResult.oldMargin.toFixed(2)}/L)</span>
+                  )}
+                </span>
+              </div>
+            )}
             <div className="flex gap-3">
               <Button variant="outline" size="sm" onClick={reset} className="gap-2">
                 <Scan className="w-3.5 h-3.5" /> Scan Another Receipt
