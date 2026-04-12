@@ -12,24 +12,14 @@ import {
   CreditCard, Wallet, Smartphone, Users,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { fmtCompact, fmtVol, fmtFull } from "@/lib/format";
+import { StatCard } from "@/components/StatCard";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const fmt = (n: number) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n);
-const fmtCompact = (n: number) => {
-  if (n >= 10000000) return `₹${(n / 10000000).toFixed(2)}Cr`;
-  if (n >= 100000) return `₹${(n / 100000).toFixed(2)}L`;
-  if (n >= 1000) return `₹${(n / 1000).toFixed(1)}K`;
-  return `₹${n.toFixed(0)}`;
-};
-const fmtVol = (n: number) => {
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}KL`;
-  return `${n.toFixed(0)}L`;
-};
-
 const PAYMENT_COLORS = {
-  Cash: "oklch(0.78 0.15 65)",
-  Card: "oklch(0.65 0.18 250)",
+  Cash:   "oklch(0.78 0.15 65)",
+  Card:   "oklch(0.65 0.18 250)",
   Credit: "oklch(0.60 0.22 25)",
   Online: "oklch(0.72 0.18 145)",
 };
@@ -55,29 +45,39 @@ function ChartTooltip({ active, payload, label }: any) {
         <div key={p.name} className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full" style={{ background: p.fill || p.color }} />
           <span className="text-muted-foreground">{p.name}:</span>
-          <span className="font-medium">{p.name.includes("Vol") || p.name.includes("Qty") ? fmtVol(p.value) : fmtCompact(p.value)}</span>
+          <span className="font-medium">
+            {p.name.includes("Vol") || p.name.includes("Qty") ? fmtVol(p.value) : fmtCompact(p.value)}
+          </span>
         </div>
       ))}
     </div>
   );
 }
 
-// ─── KPI Card ─────────────────────────────────────────────────────────────────
+// ─── Payment Mini-Card ────────────────────────────────────────────────────────
 
-function KpiCard({ icon: Icon, label, value, sub, color }: {
-  icon: any; label: string; value: string; sub: string; color: string;
+function PaymentCard({
+  icon: Icon, label, amount, color,
+}: {
+  icon: any; label: string; amount: number; color: string;
 }) {
+  const fullAmt = fmtFull(amount);
   return (
-    <Card className="bg-card border-border/50">
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between">
-          <div className={`w-9 h-9 rounded-lg flex items-center justify-center`} style={{ background: `${color}20`, border: `1px solid ${color}40` }}>
-            <Icon className="w-4 h-4" style={{ color }} />
-          </div>
+    <Card className="group bg-card border-border/50 cursor-default">
+      <CardContent className="p-4 flex items-center gap-3">
+        <div
+          className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+          style={{ background: `${color}20`, border: `1px solid ${color}40` }}
+        >
+          <Icon className="w-4 h-4" style={{ color }} />
         </div>
-        <p className="text-2xl font-bold mt-3 tabular-nums">{value}</p>
-        <p className="text-xs font-medium text-foreground mt-0.5">{label}</p>
-        <p className="text-[11px] text-muted-foreground mt-0.5">{sub}</p>
+        <div className="min-w-0">
+          <p className="text-sm font-bold tabular-nums leading-tight">{fmtCompact(amount)}</p>
+          <p className="text-[11px] tabular-nums text-muted-foreground/40 group-hover:text-muted-foreground/70 transition-colors duration-150 leading-tight truncate">
+            {fullAmt}
+          </p>
+          <p className="text-[11px] text-muted-foreground leading-tight">{label}</p>
+        </div>
       </CardContent>
     </Card>
   );
@@ -96,7 +96,7 @@ export default function Sales() {
   const startDate = showCustom ? appliedFrom : PRESETS[preset]?.start ?? "2026-03-01";
   const endDate   = showCustom ? appliedTo   : PRESETS[preset]?.end   ?? "2026-03-31";
 
-  // Data from daily_reports (sales_transactions table is empty — all sales data is in daily_reports)
+  // Data from daily_reports
   const { data: trend } = trpc.dashboard.trendByRange.useQuery({ startDate, endDate });
   const { data: kpis }  = trpc.dashboard.kpis.useQuery({ startDate, endDate });
 
@@ -122,12 +122,11 @@ export default function Sales() {
     if (!trend) return [];
     return trend.map((r: any) => {
       const date = String(r.reportDate ?? "").slice(0, 10);
-      const label = date.slice(5); // MM-DD
       return {
-        date: label,
+        date: date.slice(5), // MM-DD
         "Petrol Vol": Number(r.petrolSalesQty ?? 0),
         "Diesel Vol": Number(r.dieselSalesQty ?? 0),
-        "Sales ₹": Number(r.totalSalesValue ?? 0),
+        "Sales ₹":   Number(r.totalSalesValue ?? 0),
       };
     });
   }, [trend]);
@@ -206,60 +205,48 @@ export default function Sales() {
         </div>
       )}
 
-      {/* KPI Cards */}
+      {/* KPI Cards — compact + full exact */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KpiCard icon={IndianRupee} label="Total Sales" value={fmtCompact(summary?.totalSales ?? 0)} sub={periodLabel} color="oklch(0.78 0.15 65)" />
-        <KpiCard icon={Droplets}    label="Petrol Volume" value={fmtVol(summary?.petrolQty ?? 0)} sub="Litres dispensed" color="oklch(0.72 0.18 145)" />
-        <KpiCard icon={Fuel}        label="Diesel Volume" value={fmtVol(summary?.dieselQty ?? 0)} sub="Litres dispensed" color="oklch(0.65 0.18 250)" />
-        <KpiCard icon={TrendingUp}  label="Gross Profit" value={fmtCompact(Number(kpis?.grossProfit ?? 0))} sub="Fuel margin" color="oklch(0.78 0.15 65)" />
+        <StatCard
+          icon={IndianRupee}
+          label="Total Sales"
+          value={fmtCompact(summary?.totalSales ?? 0)}
+          rawValue={summary?.totalSales ?? 0}
+          sub={periodLabel}
+          color="oklch(0.78 0.15 65)"
+        />
+        <StatCard
+          icon={Droplets}
+          label="Petrol Volume"
+          value={fmtVol(summary?.petrolQty ?? 0)}
+          isCurrency={false}
+          sub="Litres dispensed"
+          color="oklch(0.72 0.18 145)"
+        />
+        <StatCard
+          icon={Fuel}
+          label="Diesel Volume"
+          value={fmtVol(summary?.dieselQty ?? 0)}
+          isCurrency={false}
+          sub="Litres dispensed"
+          color="oklch(0.65 0.18 250)"
+        />
+        <StatCard
+          icon={TrendingUp}
+          label="Gross Profit"
+          value={fmtCompact(Number(kpis?.grossProfit ?? 0))}
+          rawValue={Number(kpis?.grossProfit ?? 0)}
+          sub="Fuel margin"
+          color="oklch(0.78 0.15 65)"
+        />
       </div>
 
-      {/* Payment Method Cards */}
+      {/* Payment Method Cards — compact + full exact */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Card className="bg-card border-border/50">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: `${PAYMENT_COLORS.Cash}20`, border: `1px solid ${PAYMENT_COLORS.Cash}40` }}>
-              <Wallet className="w-4 h-4" style={{ color: PAYMENT_COLORS.Cash }} />
-            </div>
-            <div>
-              <p className="text-sm font-bold tabular-nums">{fmtCompact(summary?.cash ?? 0)}</p>
-              <p className="text-[11px] text-muted-foreground">Cash</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border-border/50">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: `${PAYMENT_COLORS.Card}20`, border: `1px solid ${PAYMENT_COLORS.Card}40` }}>
-              <CreditCard className="w-4 h-4" style={{ color: PAYMENT_COLORS.Card }} />
-            </div>
-            <div>
-              <p className="text-sm font-bold tabular-nums">{fmtCompact(summary?.card ?? 0)}</p>
-              <p className="text-[11px] text-muted-foreground">Card / POS</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border-border/50">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: `${PAYMENT_COLORS.Credit}20`, border: `1px solid ${PAYMENT_COLORS.Credit}40` }}>
-              <Users className="w-4 h-4" style={{ color: PAYMENT_COLORS.Credit }} />
-            </div>
-            <div>
-              <p className="text-sm font-bold tabular-nums">{fmtCompact(summary?.credit ?? 0)}</p>
-              <p className="text-[11px] text-muted-foreground">Credit Sales</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border-border/50">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: `${PAYMENT_COLORS.Online}20`, border: `1px solid ${PAYMENT_COLORS.Online}40` }}>
-              <Smartphone className="w-4 h-4" style={{ color: PAYMENT_COLORS.Online }} />
-            </div>
-            <div>
-              <p className="text-sm font-bold tabular-nums">{fmtCompact(summary?.online ?? 0)}</p>
-              <p className="text-[11px] text-muted-foreground">Online / UPI</p>
-            </div>
-          </CardContent>
-        </Card>
+        <PaymentCard icon={Wallet}     label="Cash"        amount={summary?.cash   ?? 0} color={PAYMENT_COLORS.Cash}   />
+        <PaymentCard icon={CreditCard} label="Card / POS"  amount={summary?.card   ?? 0} color={PAYMENT_COLORS.Card}   />
+        <PaymentCard icon={Users}      label="Credit Sales" amount={summary?.credit ?? 0} color={PAYMENT_COLORS.Credit} />
+        <PaymentCard icon={Smartphone} label="Online / UPI" amount={summary?.online ?? 0} color={PAYMENT_COLORS.Online} />
       </div>
 
       {/* Charts Row */}
@@ -361,19 +348,35 @@ export default function Sales() {
                 {trend && trend.length > 0 ? [...trend].reverse().map((r: any, i: number) => {
                   const date = String(r.reportDate ?? "").slice(0, 10);
                   const status = r.reconciliationStatus ?? "pending";
+                  const totalSalesVal = Number(r.totalSalesValue ?? 0);
+                  const cashVal   = Number(r.cashCollected ?? 0);
+                  const cardVal   = Number(r.cardCollected ?? 0);
+                  const creditVal = Number(r.creditSales ?? 0);
+                  const onlineVal = Number(r.onlineCollected ?? 0);
                   return (
-                    <tr key={i} className="border-b border-border/20 hover:bg-muted/30 transition-colors">
+                    <tr key={i} className="border-b border-border/20 hover:bg-muted/30 transition-colors group">
                       <td className="px-4 py-2.5 font-medium whitespace-nowrap">{date}</td>
                       <td className="px-4 py-2.5 tabular-nums text-green-400">{Number(r.petrolSalesQty ?? 0).toFixed(2)}</td>
                       <td className="px-4 py-2.5 tabular-nums text-blue-400">{Number(r.dieselSalesQty ?? 0).toFixed(2)}</td>
-                      <td className="px-4 py-2.5 tabular-nums font-semibold">{fmtCompact(Number(r.totalSalesValue ?? 0))}</td>
-                      <td className="px-4 py-2.5 tabular-nums text-muted-foreground">{fmtCompact(Number(r.cashCollected ?? 0))}</td>
-                      <td className="px-4 py-2.5 tabular-nums text-muted-foreground">{fmtCompact(Number(r.cardCollected ?? 0))}</td>
-                      <td className="px-4 py-2.5 tabular-nums text-red-400">{fmtCompact(Number(r.creditSales ?? 0))}</td>
-                      <td className="px-4 py-2.5 tabular-nums text-muted-foreground">{fmtCompact(Number(r.onlineCollected ?? 0))}</td>
+                      {/* Total Sales: compact + hover full */}
+                      <td className="px-4 py-2.5 tabular-nums font-semibold">
+                        <span title={fmtFull(totalSalesVal)}>{fmtCompact(totalSalesVal)}</span>
+                      </td>
+                      <td className="px-4 py-2.5 tabular-nums text-muted-foreground">
+                        <span title={fmtFull(cashVal)}>{fmtCompact(cashVal)}</span>
+                      </td>
+                      <td className="px-4 py-2.5 tabular-nums text-muted-foreground">
+                        <span title={fmtFull(cardVal)}>{fmtCompact(cardVal)}</span>
+                      </td>
+                      <td className="px-4 py-2.5 tabular-nums text-red-400">
+                        <span title={fmtFull(creditVal)}>{fmtCompact(creditVal)}</span>
+                      </td>
+                      <td className="px-4 py-2.5 tabular-nums text-muted-foreground">
+                        <span title={fmtFull(onlineVal)}>{fmtCompact(onlineVal)}</span>
+                      </td>
                       <td className="px-4 py-2.5">
                         <Badge className={`text-[10px] ${
-                          status === "reconciled" ? "bg-green-500/15 text-green-400 border-green-500/20" :
+                          status === "reconciled"  ? "bg-green-500/15 text-green-400 border-green-500/20" :
                           status === "discrepancy" ? "bg-red-500/15 text-red-400 border-red-500/20" :
                           "bg-amber-500/15 text-amber-400 border-amber-500/20"
                         }`}>

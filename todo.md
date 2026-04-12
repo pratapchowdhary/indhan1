@@ -241,3 +241,14 @@
 - [ ] Set realistic min stock levels (Diesel 5000L, Petrol 3000L, lubricants 20L each)
 - [ ] Fix PO units label: "units" → "litres" for fuel products
 - [ ] Fix bank reconciliation: Reconcile button updates isReconciled, Pending count reflects reality
+
+## Nozzle Sales & Cash Collection Module — COMPLETE
+- [x] Add pumps, nozzles, nozzle_readings, cash_collections, shift_sessions, day_reconciliations tables to schema
+- [x] Generate and apply migration SQL
+- [x] Seed 2 pumps × 4 nozzles (Pump 1: Diesel + Petrol; Pump 2: Diesel + Petrol)
+- [x] Build tRPC nozzle router (getPumpsWithNozzles, getNozzles, startShift, saveReading, addCollection, closeShift, getSessionSummary, getDayReconciliation, getNozzleDataForDate)
+- [x] autoPopulateDailyReport: on shift close, auto-fills daily_reports with petrol/diesel volumes and collection totals
+- [x] Build Staff Nozzle Entry page (/nozzle-entry) — 5-step mobile-optimised workflow
+- [x] Upgrade Reconciliation page — nozzle data banner, Pre-fill Sales button, drill-down per session
+- [x] Add Nozzle Entry to App.tsx routing and sidebar nav (Operations group)
+- [x] Write vitest tests for nozzle module (197 total tests passing)

@@ -21,6 +21,7 @@ import Payroll from "./pages/Payroll";
 import Assets from "./pages/Assets";
 import BiometricAttendance from "./pages/BiometricAttendance";
 import StaffPortal from "./pages/StaffPortal";
+import NozzleEntry from "./pages/NozzleEntry";
 
 function Router() {
   return (
@@ -42,6 +43,7 @@ function Router() {
         <Route path="/attendance" component={BiometricAttendance} />
         <Route path="/staff" component={StaffPortal} />
         <Route path="/assets" component={Assets} />
+        <Route path="/nozzle-entry" component={NozzleEntry} />
         <Route component={NotFound} />
       </Switch>
     </DashboardLayout>

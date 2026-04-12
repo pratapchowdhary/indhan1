@@ -532,3 +532,97 @@ export const payrollRequests = mysqlTable("payroll_requests", {
 
 export type PayrollRequest = typeof payrollRequests.$inferSelect;
 export type InsertPayrollRequest = typeof payrollRequests.$inferInsert;
+
+// ─── Pumps ────────────────────────────────────────────────────────────────────
+export const pumps = mysqlTable("pumps", {
+  id: int("id").autoincrement().primaryKey(),
+  pumpNumber: int("pump_number").notNull().unique(),
+  label: varchar("label", { length: 50 }).notNull(),          // e.g. "Pump 1"
+  location: varchar("location", { length: 100 }),             // e.g. "Island A"
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type Pump = typeof pumps.$inferSelect;
+
+// ─── Nozzles ──────────────────────────────────────────────────────────────────
+export const nozzles = mysqlTable("nozzles", {
+  id: int("id").autoincrement().primaryKey(),
+  pumpId: int("pump_id").notNull(),
+  nozzleNumber: int("nozzle_number").notNull(),               // 1-4 globally
+  label: varchar("label", { length: 50 }).notNull(),          // e.g. "Nozzle 1 – Petrol"
+  fuelType: mysqlEnum("fuel_type", ["petrol", "diesel"]).notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type Nozzle = typeof nozzles.$inferSelect;
+
+// ─── Shift Sessions ───────────────────────────────────────────────────────────
+// One session per staff member per day (or per shift if multiple shifts/day)
+export const shiftSessions = mysqlTable("shift_sessions", {
+  id: int("id").autoincrement().primaryKey(),
+  shiftDate: varchar("shift_date", { length: 10 }).notNull(),  // YYYY-MM-DD
+  employeeId: int("employee_id").notNull(),
+  staffName: varchar("staff_name", { length: 100 }).notNull(),
+  shiftLabel: mysqlEnum("shift_label", ["morning", "evening", "full_day"]).default("full_day"),
+  startedAt: timestamp("started_at"),
+  closedAt: timestamp("closed_at"),
+  status: mysqlEnum("status", ["open", "closed", "reconciled"]).default("open"),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type ShiftSession = typeof shiftSessions.$inferSelect;
+
+// ─── Nozzle Readings ──────────────────────────────────────────────────────────
+// Meter readings captured at opening and closing of each shift per nozzle
+export const nozzleReadings = mysqlTable("nozzle_readings", {
+  id: int("id").autoincrement().primaryKey(),
+  sessionId: int("session_id").notNull(),
+  nozzleId: int("nozzle_id").notNull(),
+  readingType: mysqlEnum("reading_type", ["opening", "closing"]).notNull(),
+  meterReading: decimal("meter_reading", { precision: 12, scale: 2 }).notNull(), // cumulative meter in litres
+  recordedAt: timestamp("recorded_at").defaultNow().notNull(),
+  recordedBy: varchar("recorded_by", { length: 100 }),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type NozzleReading = typeof nozzleReadings.$inferSelect;
+
+// ─── Cash Collections ─────────────────────────────────────────────────────────
+// Staff log cash received throughout the day (multiple entries allowed)
+export const cashCollections = mysqlTable("cash_collections", {
+  id: int("id").autoincrement().primaryKey(),
+  sessionId: int("session_id").notNull(),
+  nozzleId: int("nozzle_id"),                                  // null = general / all nozzles
+  collectionTime: timestamp("collection_time").defaultNow().notNull(),
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  paymentMode: mysqlEnum("payment_mode", ["cash", "card", "online", "credit"]).default("cash"),
+  customerId: int("customer_id"),                              // for credit sales
+  customerName: varchar("customer_name", { length: 255 }),
+  notes: text("notes"),
+  recordedBy: varchar("recorded_by", { length: 100 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type CashCollection = typeof cashCollections.$inferSelect;
+
+// ─── Day Reconciliation ───────────────────────────────────────────────────────
+// Admin-level daily summary computed from all sessions
+export const dayReconciliations = mysqlTable("day_reconciliations", {
+  id: int("id").autoincrement().primaryKey(),
+  reconcileDate: varchar("reconcile_date", { length: 10 }).notNull().unique(), // YYYY-MM-DD
+  totalPetrolLitres: decimal("total_petrol_litres", { precision: 12, scale: 2 }).default("0.00"),
+  totalDieselLitres: decimal("total_diesel_litres", { precision: 12, scale: 2 }).default("0.00"),
+  totalSalesValue: decimal("total_sales_value", { precision: 15, scale: 2 }).default("0.00"),
+  totalCashCollected: decimal("total_cash_collected", { precision: 15, scale: 2 }).default("0.00"),
+  totalCardCollected: decimal("total_card_collected", { precision: 15, scale: 2 }).default("0.00"),
+  totalOnlineCollected: decimal("total_online_collected", { precision: 15, scale: 2 }).default("0.00"),
+  totalCreditSales: decimal("total_credit_sales", { precision: 15, scale: 2 }).default("0.00"),
+  variance: decimal("variance", { precision: 15, scale: 2 }).default("0.00"),
+  status: mysqlEnum("status", ["pending", "balanced", "discrepancy"]).default("pending"),
+  reconciledBy: varchar("reconciled_by", { length: 100 }),
+  reconciledAt: timestamp("reconciled_at"),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type DayReconciliation = typeof dayReconciliations.$inferSelect;
