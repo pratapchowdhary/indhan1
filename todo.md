@@ -542,3 +542,8 @@
 - [x] Fix: Inventory page Diesel currentStock = 0 — syncFuelStockFromLatestReport now runs on server startup (server/_core/index.ts) AND after each reconciliation save
 - [x] Fix: Dashboard Fuel Intelligence Diesel stock = 0% — falls back to products.currentStock when no dip readings exist (db-fuel-intelligence.ts)
 - [x] Fix: Directly updated products.currentStock for Diesel to 6823.32 L and Petrol to 11920.19 L in DB
+
+## Diesel Stock Correction — FY 2025-26
+- [x] Correct Diesel (HSD) currentStock to 13,146.20 L (confirmed by Kranthi from BEES register)
+- [x] Root cause: closingStockDiesel on 31 Mar 2026 was a data entry error in Excel (6,823.32 recorded vs correct 13,146.20 = opening 15,677.09 − sold 2,530.89)
+- [x] Fixed: both products.currentStock and daily_reports.closingStockDiesel for 31 Mar 2026 updated to 13,146.20 L
