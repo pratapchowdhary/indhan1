@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { protectedProcedure, router } from "../_core/trpc";
+import { protectedProcedure, adminProcedure, router } from "../_core/trpc";
 import { invokeLLM, type Message } from "../_core/llm";
 import { storagePut } from "../storage";
 
@@ -34,7 +34,7 @@ function inferTransactionType(description: string): ParsedTransaction["transacti
 export const bankStatementRouter = router({
 
   // Upload + parse a bank statement file (base64 encoded)
-  upload: protectedProcedure.input(z.object({
+  upload: adminProcedure.input(z.object({
     filename: z.string().min(1).max(255),
     fileType: z.enum(["pdf", "xlsx", "csv"]),
     fileBase64: z.string().min(1),
@@ -223,7 +223,7 @@ Rules:
   }),
 
   // Mark a date as reconciled (bank tx + daily report)
-  markDateReconciled: protectedProcedure.input(z.object({
+  markDateReconciled: adminProcedure.input(z.object({
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   })).mutation(async ({ input }) => {
     const pool = await getDb();

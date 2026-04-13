@@ -1,11 +1,7 @@
 /**
- * NozzleEntry.tsx — Staff Nozzle Sales & Cash Collection Entry
- * Mobile-optimised step-by-step workflow:
- *   Step 1: Select staff + shift
- *   Step 2: Enter opening meter readings for all 4 nozzles
- *   Step 3: Log cash/card/online/credit collections throughout the day
- *   Step 4: Enter closing meter readings
- *   Step 5: Review summary & close shift → auto-populates daily_reports
+ * NozzleEntry.tsx — Staff Nozzle Sales & Cash Collection Entry + Daily Activity Report
+ * Tab 1 (Entry): Mobile-optimised step-by-step workflow for shift entry
+ * Tab 2 (Activity Report): Auto-populated daily report from nozzle sessions
  */
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
@@ -16,14 +12,28 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   Fuel, IndianRupee, CheckCircle2, AlertCircle, Clock,
   ChevronRight, ChevronLeft, Plus, Trash2, ArrowRight,
   Gauge, Wallet, BarChart3, ClipboardCheck, User,
+  ClipboardList, Droplets, CreditCard, Smartphone, ChevronDown,
+  TrendingUp, ArrowLeft,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, subDays, addDays } from "date-fns";
 import { fmtCompact, fmtFull } from "@/lib/format";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
+} from "recharts";
+
+// ─── Daily Activity Helpers ────────────────────────────────────────────────────
+const fmtINR = (n: number) =>
+  new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n);
+const fmtL = (n: number) => `${n.toFixed(1)}L`;
+const DIGITAL_LABELS: Record<string, string> = {
+  upi: "UPI", phonepe: "PhonePe", card: "Card", bank_transfer: "Bank", bhim: "BHIM"
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const TODAY = format(new Date(), "yyyy-MM-dd");
@@ -285,18 +295,41 @@ export default function NozzleEntry() {
   const expectedValue = liveVolumes.petrol * PETROL_PRICE + liveVolumes.diesel * DIESEL_PRICE;
   const variance = collectionTotals.total - expectedValue;
 
-  // ── Render ───────────────────────────────────────────────────────────────
+  // ── Daily Activity state ───────────────────────────────────────────────────────────────────────────────────────
+  const [activityDate, setActivityDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
+  const [expandedSessions, setExpandedSessions] = useState<Set<number>>(new Set());
+  const { data: activityReport, isLoading: activityLoading } = trpc.nozzle.getDailyActivityReport.useQuery(
+    { reportDate: activityDate },
+    { refetchInterval: 30_000 }
+  );
+  const { data: recentData } = trpc.nozzle.getRecentDailyActivity.useQuery({ days: 14 });
+  const chartData = useMemo(() => {
+    if (!recentData) return [];
+    return recentData.map((d: any) => ({
+      date: d.date.slice(5),
+      petrol: Number(d.totalPetrol.toFixed(1)),
+      diesel: Number(d.totalDiesel.toFixed(1)),
+      collected: d.totalCollected,
+    }));
+  }, [recentData]);
+  function toggleSession(id: number) {
+    setExpandedSessions(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
+  }
+  function prevActivityDay() { setActivityDate(d => format(subDays(new Date(d), 1), "yyyy-MM-dd")); }
+  function nextActivityDay() { const next = addDays(new Date(activityDate), 1); if (next <= new Date()) setActivityDate(format(next, "yyyy-MM-dd")); }
+  const isActivityToday = activityDate === format(new Date(), "yyyy-MM-dd");
+  const hasActivityData = activityReport && activityReport.sessionCount > 0;
+
+  // ── Render ───────────────────────────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-4 w-full max-w-2xl mx-auto">
-      {/* Header */}
+    <div className="space-y-4 w-full max-w-3xl mx-auto">
+      {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-bold tracking-tight flex items-center gap-2">
-            <Fuel className="w-5 h-5 text-primary" /> Nozzle Entry
+            <Fuel className="w-5 h-5 text-primary" /> Nozzle Operations
           </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Log meter readings & collections — {shiftDate && /^\d{4}-\d{2}-\d{2}$/.test(shiftDate) ? format(new Date(shiftDate + "T00:00:00"), "dd MMM yyyy") : "—"}
-          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">Shift entry & daily activity report</p>
         </div>
         {sessionId && (
           <Badge variant="outline" className="text-green-400 border-green-500/30 bg-green-500/10 text-xs">
@@ -305,11 +338,28 @@ export default function NozzleEntry() {
         )}
       </div>
 
-      <StepBar current={step} />
+      <Tabs defaultValue="entry" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsTrigger value="entry" className="flex items-center gap-2">
+            <Gauge className="w-4 h-4" /> Shift Entry
+          </TabsTrigger>
+          <TabsTrigger value="activity" className="flex items-center gap-2">
+            <ClipboardList className="w-4 h-4" /> Activity Report
+          </TabsTrigger>
+        </TabsList>
 
-      {/* ── Step 0: Staff & Shift ─────────────────────────────────────────── */}
-      {step === 0 && (
-        <Card className="bg-card border-border/50">
+        {/* ===== TAB 1: ENTRY ===== */}
+        <TabsContent value="entry" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              Log meter readings & collections — {shiftDate && /^\d{4}-\d{2}-\d{2}$/.test(shiftDate) ? format(new Date(shiftDate + "T00:00:00"), "dd MMM yyyy") : "—"}
+            </p>
+          </div>
+          <StepBar current={step} />
+
+          {/* ── Step 0: Staff & Shift ───────────────────────────────────────────────────── */}
+          {step === 0 && (
+            <Card className="bg-card border-border/50">
           <CardHeader className="pb-3 pt-4 px-5">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <User className="w-4 h-4 text-primary" /> Select Staff & Shift
@@ -1022,6 +1072,260 @@ export default function NozzleEntry() {
           </Card>
         </div>
       )}
+        </TabsContent>
+
+        {/* ===== TAB 2: ACTIVITY REPORT ===== */}
+        <TabsContent value="activity" className="space-y-4">
+          {/* Date navigation */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <ClipboardList className="w-4 h-4 text-primary" /> Daily Activity Report
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Auto-populated from nozzle sessions · refreshes every 30s</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={prevActivityDay}>
+                <ArrowLeft className="w-3.5 h-3.5" />
+              </Button>
+              <Input
+                type="date"
+                className="bg-secondary border-border/50 h-8 text-sm w-36"
+                value={activityDate}
+                max={format(new Date(), "yyyy-MM-dd")}
+                onChange={e => setActivityDate(e.target.value)}
+              />
+              <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={nextActivityDay} disabled={isActivityToday}>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Button>
+              {isActivityToday && <Badge className="text-xs bg-green-500/20 text-green-400 border-green-500/30">Today</Badge>}
+            </div>
+          </div>
+
+          {/* No data state */}
+          {!activityLoading && !hasActivityData && (
+            <Card className="bg-card border-border/50">
+              <CardContent className="py-12 text-center">
+                <Fuel className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-40" />
+                <p className="text-sm font-medium text-muted-foreground">No nozzle sessions recorded for {activityDate}</p>
+                <p className="text-xs text-muted-foreground mt-1">Data appears here automatically when staff complete nozzle entries</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* KPI Strip */}
+          {hasActivityData && (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <Card className="bg-card border-border/50">
+                  <CardContent className="p-4">
+                    <div className="w-9 h-9 rounded-lg border border-teal-500/20 bg-teal-500/10 flex items-center justify-center mb-3">
+                      <Droplets className="w-4 h-4 text-teal-400" />
+                    </div>
+                    <p className="text-lg font-bold tabular-nums text-teal-400">{fmtL(activityReport.totalPetrolLitres)}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Petrol Sold</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-card border-border/50">
+                  <CardContent className="p-4">
+                    <div className="w-9 h-9 rounded-lg border border-blue-500/20 bg-blue-500/10 flex items-center justify-center mb-3">
+                      <Droplets className="w-4 h-4 text-blue-400" />
+                    </div>
+                    <p className="text-lg font-bold tabular-nums text-blue-400">{fmtL(activityReport.totalDieselLitres)}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Diesel Sold</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-card border-border/50">
+                  <CardContent className="p-4">
+                    <div className="w-9 h-9 rounded-lg border border-green-500/20 bg-green-500/10 flex items-center justify-center mb-3">
+                      <Wallet className="w-4 h-4 text-green-400" />
+                    </div>
+                    <p className="text-lg font-bold tabular-nums text-green-400">{fmtCompact(activityReport.totalCash)}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Cash Collected</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-card border-border/50">
+                  <CardContent className="p-4">
+                    <div className="w-9 h-9 rounded-lg border border-primary/20 bg-primary/10 flex items-center justify-center mb-3">
+                      <TrendingUp className="w-4 h-4 text-primary" />
+                    </div>
+                    <p className="text-lg font-bold tabular-nums text-primary">{fmtCompact(activityReport.totalCollected)}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Total Collected</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Payment Breakdown + Sessions */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Card className="bg-card border-border/50">
+                  <CardHeader className="pb-2 pt-4 px-4">
+                    <CardTitle className="text-sm font-semibold">Payment Breakdown</CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-4 pb-4 space-y-2">
+                    <div className="flex items-center justify-between py-1.5 border-b border-border/20">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center">
+                          <Wallet className="w-3.5 h-3.5 text-green-400" />
+                        </div>
+                        <span className="text-sm">Cash</span>
+                      </div>
+                      <span className="text-sm font-bold tabular-nums text-green-400">{fmtINR(activityReport.totalCash)}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-1.5 border-b border-border/20">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                          <Smartphone className="w-3.5 h-3.5 text-blue-400" />
+                        </div>
+                        <span className="text-sm">Digital</span>
+                      </div>
+                      <span className="text-sm font-bold tabular-nums text-blue-400">{fmtINR(activityReport.totalDigital)}</span>
+                    </div>
+                    {Object.entries(activityReport.digitalBreakdown ?? {}).filter(([, v]) => (v as number) > 0).map(([k, v]) => (
+                      <div key={k} className="flex items-center justify-between pl-9 py-0.5">
+                        <span className="text-xs text-muted-foreground">{DIGITAL_LABELS[k] ?? k}</span>
+                        <span className="text-xs tabular-nums text-blue-300">{fmtINR(v as number)}</span>
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-between py-1.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
+                          <CreditCard className="w-3.5 h-3.5 text-orange-400" />
+                        </div>
+                        <span className="text-sm">Credit</span>
+                      </div>
+                      <span className="text-sm font-bold tabular-nums text-orange-400">{fmtINR(activityReport.totalCredit)}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-card border-border/50">
+                  <CardHeader className="pb-2 pt-4 px-4">
+                    <CardTitle className="text-sm font-semibold">Sessions</CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-4 pb-4">
+                    <div className="grid grid-cols-3 gap-3 mb-4">
+                      <div className="text-center p-3 rounded-lg bg-secondary/40">
+                        <p className="text-xl font-bold tabular-nums">{activityReport.sessionCount}</p>
+                        <p className="text-[10px] text-muted-foreground">Total</p>
+                      </div>
+                      <div className="text-center p-3 rounded-lg bg-green-500/10">
+                        <p className="text-2xl font-bold text-green-400">{activityReport.closedSessions}</p>
+                        <p className="text-[10px] text-muted-foreground">Closed</p>
+                      </div>
+                      <div className="text-center p-3 rounded-lg bg-teal-500/10">
+                        <p className="text-2xl font-bold text-teal-400">{activityReport.openSessions}</p>
+                        <p className="text-[10px] text-muted-foreground">Open</p>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Total Litres Dispensed</span>
+                        <span className="font-semibold">{fmtL(activityReport.totalLitres)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Petrol</span>
+                        <span className="font-semibold text-teal-400">{fmtL(activityReport.totalPetrolLitres)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Diesel</span>
+                        <span className="font-semibold text-blue-400">{fmtL(activityReport.totalDieselLitres)}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Session Details */}
+              <Card className="bg-card border-border/50">
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <CardTitle className="text-sm font-semibold">Session Details</CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4 space-y-2">
+                  {activityReport.sessions.map((session: any) => {
+                    const isExpanded = expandedSessions.has(session.sessionId);
+                    return (
+                      <div key={session.sessionId} className="rounded-lg border border-border/40 overflow-hidden">
+                        <button
+                          className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-secondary/40 transition-colors text-left"
+                          onClick={() => toggleSession(session.sessionId)}
+                        >
+                          {session.status === "closed"
+                            ? <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />
+                            : <Clock className="w-4 h-4 text-teal-400 shrink-0" />
+                          }
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium">{session.staffName}</p>
+                            <p className="text-[10px] text-muted-foreground capitalize">{session.shiftLabel?.replace("_", " ")} · {session.status}</p>
+                          </div>
+                          <div className="text-right mr-2">
+                            <p className="text-xs font-bold tabular-nums">{fmtINR(session.totalCollected)}</p>
+                            <p className="text-[10px] text-muted-foreground">{fmtL(session.totalPetrolLitres + session.totalDieselLitres)}</p>
+                          </div>
+                          {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" /> : <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />}
+                        </button>
+                        {isExpanded && (
+                          <div className="border-t border-border/30 bg-secondary/20 px-3 py-3 space-y-2">
+                            {session.nozzleSummaries?.map((ns: any) => (
+                              <div key={ns.nozzleId} className="flex items-center gap-3 rounded-lg bg-card/60 px-3 py-2">
+                                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${ns.fuelType === "petrol" ? "bg-teal-500/10 border border-teal-500/20" : "bg-blue-500/10 border border-blue-500/20"}`}>
+                                  <Droplets className={`w-3.5 h-3.5 ${ns.fuelType === "petrol" ? "text-teal-400" : "text-blue-400"}`} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-medium">{ns.label ?? `Nozzle #${ns.nozzleId}`}</p>
+                                  <p className="text-[10px] text-muted-foreground capitalize">{ns.fuelType}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-xs font-bold tabular-nums">{ns.dispensed !== null ? fmtL(ns.dispensed) : "—"}</p>
+                                  <p className="text-[10px] text-muted-foreground">{ns.opening?.toFixed(1)} → {ns.closing?.toFixed(1)}</p>
+                                </div>
+                              </div>
+                            ))}
+                            <div className="flex justify-between text-xs pt-1 border-t border-border/20">
+                              <span className="text-muted-foreground">Session Total</span>
+                              <div className="flex gap-3">
+                                <span className="text-green-400">Cash: {fmtINR(session.totalCash)}</span>
+                                <span className="text-blue-400">Digital: {fmtINR(session.totalDigital)}</span>
+                                {session.totalCredit > 0 && <span className="text-orange-400">Credit: {fmtINR(session.totalCredit)}</span>}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            </>
+          )}
+
+          {/* 14-day trend chart */}
+          {chartData.length > 1 && (
+            <Card className="bg-card border-border/50">
+              <CardHeader className="pb-2 pt-4 px-4">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-primary" /> 14-Day Volume Trend
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4">
+                <ResponsiveContainer width="100%" height={160}>
+                  <BarChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} vertical={false} />
+                    <XAxis dataKey="date" tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
+                    <YAxis tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} tickFormatter={v => `${v}L`} width={40} />
+                    <Tooltip
+                      formatter={(v: any, name: string) => [`${Number(v).toFixed(1)}L`, name === "petrol" ? "Petrol" : "Diesel"]}
+                      contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }}
+                    />
+                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 10 }} />
+                    <Bar dataKey="petrol" name="Petrol" fill="#17897e" radius={[2, 2, 0, 0]} />
+                    <Bar dataKey="diesel" name="Diesel" fill="#3b82f6" radius={[2, 2, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

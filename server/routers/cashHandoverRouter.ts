@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { protectedProcedure, router } from "../_core/trpc";
+import { protectedProcedure, operationalProcedure, adminProcedure, router } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 
 // ─── DB helper ────────────────────────────────────────────────────────────────
@@ -133,7 +133,7 @@ export const cashHandoverRouter = router({
     }),
 
   // ── Confirm nozzle cash collection ─────────────────────────────────────────
-  confirmNozzle: protectedProcedure
+  confirmNozzle: operationalProcedure
     .input(z.object({
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       nozzleId: z.number().int().positive(),
@@ -190,7 +190,7 @@ export const cashHandoverRouter = router({
     }),
 
   // ── Finalise handover & generate deposit voucher ────────────────────────────
-  finaliseAndGenerateVoucher: protectedProcedure
+  finaliseAndGenerateVoucher: operationalProcedure
     .input(z.object({
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       floatRetained: z.number().min(0).default(0),
@@ -378,7 +378,7 @@ export const cashHandoverRouter = router({
     }),
 
   // ── Match voucher to bank transaction ──────────────────────────────────────
-  matchToBankEntry: protectedProcedure
+  matchToBankEntry: adminProcedure
     .input(z.object({
       voucherId: z.number().int().positive(),
       bankTransactionId: z.number().int().positive(),
@@ -407,7 +407,7 @@ export const cashHandoverRouter = router({
     }),
 
   // ── Auto-match vouchers to bank entries by amount + date ───────────────────
-  autoMatch: protectedProcedure
+  autoMatch: adminProcedure
     .input(z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }))
     .mutation(async ({ input, ctx }) => {
       const pool = await getDb();

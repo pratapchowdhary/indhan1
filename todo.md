@@ -681,3 +681,23 @@
 - [x] Fix NozzleEntry.tsx date input onChange: fallback to TODAY if value is empty string
 - [x] Fix CashHandover.tsx: guard voucherDate with null check and add T00:00:00 suffix
 - [x] Fix BankStatementUpload.tsx: guard createdAt with null check
+
+## RBAC & UX Consolidation Build
+- [x] Schema: add pump_attendant to role enum, generate and apply migration
+- [x] Combine Nozzle Entry + Daily Activity into single tabbed page (/nozzle-entry with Entry and Activity Report tabs)
+- [x] Remove Daily Activity from sidebar navigation
+- [x] Build User Management page (Settings → Users): list all users, change roles
+- [x] Backend: add tRPC procedures for user management (list users, update role)
+- [x] Frontend: filter sidebar navigation by user role
+- [x] Frontend: guard page routes by role (redirect to /unauthorized if no access)
+- [x] Frontend: disable write actions (buttons) for read-only roles
+- [x] Backend: add role guards to Nozzle Entry write operations (incharge + pump_attendant only)
+- [x] Backend: add role guards to Expenses create (incharge allowed, read-only for pump_attendant)
+- [x] Backend: add role guards to Fuel Prices write (admin + accountant only)
+- [x] Backend: add role guards to Bank Statement write (admin + accountant only)
+- [x] Backend: add role guards to Cash Handover write (admin + accountant only)
+- [x] Backend: add role guards to Customers & Credit write (admin + accountant only)
+- [x] Backend: add role guards to Reconciliation write (admin + accountant only)
+- [x] Backend: add role guards to Employees/Payroll write (admin only)
+- [x] Backend: add role guards to Settings/Import (admin only)
+- [x] Clear all test data from Assets & Equipment table

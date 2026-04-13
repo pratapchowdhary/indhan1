@@ -5,7 +5,7 @@
  *  2. Purchase receipt scanning (AI vision extracts invoice data → purchase order)
  */
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure, operationalProcedure } from "../_core/trpc";
 import { invokeLLM } from "../_core/llm";
 import { notifyOwner } from "../_core/notification";
 import { storagePut } from "../storage";
@@ -122,7 +122,7 @@ const dailyPriceInput = z.object({
 
 export const fuelPricesRouter = router({
   // ─── Save / update today's price ────────────────────────────────────────
-  saveDailyPrice: protectedProcedure
+  saveDailyPrice: operationalProcedure
     .input(dailyPriceInput)
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -223,7 +223,7 @@ export const fuelPricesRouter = router({
     }),
 
   // ─── Upload receipt image and extract data via AI vision ─────────────────
-  uploadAndScanReceipt: protectedProcedure
+  uploadAndScanReceipt: operationalProcedure
     .input(z.object({
       imageBase64: z.string().min(100),
       mimeType: z.enum(["image/jpeg", "image/png", "image/webp", "image/heic"]).default("image/jpeg"),
@@ -320,7 +320,7 @@ export const fuelPricesRouter = router({
     }),
 
   // ─── Re-scan an existing receipt (re-run LLM on stored image) ────────────
-  rescanReceipt: protectedProcedure
+  rescanReceipt: operationalProcedure
     .input(z.object({ receiptId: z.number().int().positive() }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -409,7 +409,7 @@ export const fuelPricesRouter = router({
     }),
 
   // ─── Confirm scanned receipt and create purchase order ───────────────────
-  confirmReceipt: protectedProcedure
+  confirmReceipt: operationalProcedure
     .input(z.object({
       receiptId: z.number().int().positive(),
       supplierName: z.string().min(1),

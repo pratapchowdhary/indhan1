@@ -29,7 +29,7 @@ import {
   LayoutDashboard, RefreshCw, Users, Package, Receipt,
   Landmark, TrendingUp, FileUp, Settings, LogOut,
   PanelLeft, Fuel, UserCheck, ChevronRight, Bell, Sun, Moon, Info,
-  Wrench, IndianRupee, ScanFace, Gauge, Tag, ScanLine, Banknote, ClipboardList, Upload, FlaskConical,
+  Wrench, IndianRupee, ScanFace, Gauge, Tag, ScanLine, Banknote, ClipboardList, Upload, FlaskConical, UserCog,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -39,34 +39,46 @@ import { Badge } from "./ui/badge";
 import SathiAgent from "./SathiAgent";
 import { useTheme } from "../contexts/ThemeContext";
 
+// Role type
+type UserRole = "admin" | "owner" | "accountant" | "incharge" | "pump_attendant" | "user";
+
+// Access matrix — which roles can see each menu item
+// admin/owner/accountant = identical full access
+// incharge = operational + customers/expenses + assets only
+// pump_attendant = nozzle entry only
+const ALL_ROLES: UserRole[] = ["admin", "owner", "accountant", "incharge", "pump_attendant", "user"];
+const ADMIN_ACCOUNTANT: UserRole[] = ["admin", "owner", "accountant"];
+const ADMIN_INCHARGE: UserRole[] = ["admin", "owner", "accountant", "incharge"];
+const ADMIN_ONLY: UserRole[] = ["admin", "owner"];
+
 const menuItems = [
   // OPERATIONS
-  { icon: LayoutDashboard, label: "Dashboard",       path: "/",               group: "Operations" },
-  { icon: Gauge,           label: "Nozzle Entry",    path: "/nozzle-entry",   group: "Operations" },
-  { icon: Fuel,            label: "Sales & Nozzles", path: "/sales",          group: "Operations" },
-  { icon: RefreshCw,       label: "Reconciliation",  path: "/reconciliation", group: "Operations" },
-  { icon: Banknote,        label: "Cash Handover",   path: "/cash-handover",  group: "Operations" },
-  { icon: ClipboardList,   label: "Daily Activity",  path: "/daily-activity", group: "Operations" },
+  { icon: LayoutDashboard, label: "Dashboard",       path: "/",               group: "Operations", roles: ADMIN_ACCOUNTANT },
+  { icon: Gauge,           label: "Nozzle Entry",    path: "/nozzle-entry",   group: "Operations", roles: ALL_ROLES },
+  { icon: Fuel,            label: "Sales & Nozzles", path: "/sales",          group: "Operations", roles: ADMIN_INCHARGE },
+  { icon: RefreshCw,       label: "Reconciliation",  path: "/reconciliation", group: "Operations", roles: ADMIN_ACCOUNTANT },
+  { icon: Banknote,        label: "Cash Handover",   path: "/cash-handover",  group: "Operations", roles: ADMIN_INCHARGE },
   // FUEL MANAGEMENT
-  { icon: Tag,             label: "Fuel Prices",         path: "/fuel-prices",      group: "Fuel" },
-  { icon: ScanLine,        label: "Receipt Scanner",     path: "/receipt-scanner",  group: "Fuel" },
-  { icon: Package,         label: "Inventory",           path: "/inventory",        group: "Fuel" },
-  { icon: FlaskConical,    label: "Daily Stock Register",path: "/daily-stock",      group: "Fuel" },
+  { icon: Tag,             label: "Fuel Prices",         path: "/fuel-prices",      group: "Fuel", roles: ADMIN_INCHARGE },
+  { icon: ScanLine,        label: "Receipt Scanner",     path: "/receipt-scanner",  group: "Fuel", roles: ADMIN_ACCOUNTANT },
+  { icon: Package,         label: "Inventory",           path: "/inventory",        group: "Fuel", roles: ADMIN_INCHARGE },
+  { icon: FlaskConical,    label: "Daily Stock Register",path: "/daily-stock",      group: "Fuel", roles: ADMIN_INCHARGE },
   // FINANCE
-  { icon: Users,           label: "Customers & Credit",  path: "/customers",              group: "Finance" },
-  { icon: Receipt,         label: "Expenses",            path: "/expenses",               group: "Finance" },
-  { icon: Landmark,        label: "Bank Statement",      path: "/bank",                   group: "Finance" },
-  { icon: Upload,          label: "Bank Sync",           path: "/bank-statement-upload",  group: "Finance" },
-  { icon: TrendingUp,      label: "P&L Reports",         path: "/reports",                group: "Finance" },
+  { icon: Users,           label: "Customers & Credit",  path: "/customers",              group: "Finance", roles: ADMIN_INCHARGE },
+  { icon: Receipt,         label: "Expenses",            path: "/expenses",               group: "Finance", roles: ADMIN_INCHARGE },
+  { icon: Landmark,        label: "Bank Statement",      path: "/bank",                   group: "Finance", roles: ADMIN_ACCOUNTANT },
+  { icon: Upload,          label: "Bank Sync",           path: "/bank-statement-upload",  group: "Finance", roles: ADMIN_ACCOUNTANT },
+  { icon: TrendingUp,      label: "P&L Reports",         path: "/reports",                group: "Finance", roles: ADMIN_ACCOUNTANT },
   // PEOPLE
-  { icon: UserCheck,       label: "Employees",           path: "/employees",  group: "People" },
-  { icon: IndianRupee,     label: "Payroll",             path: "/payroll",    group: "People" },
-  { icon: ScanFace,        label: "Attendance",          path: "/attendance", group: "People" },
+  { icon: UserCheck,       label: "Employees",           path: "/employees",  group: "People", roles: ADMIN_INCHARGE },
+  { icon: IndianRupee,     label: "Payroll",             path: "/payroll",    group: "People", roles: ADMIN_ACCOUNTANT },
+  { icon: ScanFace,        label: "Attendance",          path: "/attendance", group: "People", roles: ADMIN_INCHARGE },
   // SETUP
-  { icon: Wrench,          label: "Assets & Equipment",  path: "/assets",    group: "Setup" },
-  { icon: FileUp,          label: "Import Data",         path: "/import",    group: "Setup" },
-  { icon: Settings,        label: "Settings",            path: "/settings",  group: "Setup" },
-  { icon: Info,            label: "About",               path: "/about",     group: "Setup" },
+  { icon: Wrench,          label: "Assets & Equipment",  path: "/assets",    group: "Setup", roles: ADMIN_INCHARGE },
+  { icon: FileUp,          label: "Import Data",         path: "/import",    group: "Setup", roles: ADMIN_ONLY },
+  { icon: Settings,        label: "Settings",            path: "/settings",  group: "Setup", roles: ADMIN_ONLY },
+  { icon: UserCog,         label: "User Management",     path: "/users",     group: "Setup", roles: ADMIN_ONLY },
+  { icon: Info,            label: "About",               path: "/about",     group: "Setup", roles: ALL_ROLES },
 ];
 
 // Bottom nav shows the 5 most-used items on mobile
@@ -265,7 +277,9 @@ function DashboardLayoutContent({ children, setSidebarWidth }: { children: React
     if (isMobile) setOpen(false);
   };
 
-  const activeItem = menuItems.find(i => i.path === location);
+  const userRole = (user?.role ?? "user") as UserRole;
+  const visibleMenuItems = menuItems.filter(i => i.roles.includes(userRole));
+  const activeItem = visibleMenuItems.find(i => i.path === location) ?? menuItems.find(i => i.path === location);
 
   return (
     <>
@@ -302,7 +316,8 @@ function DashboardLayoutContent({ children, setSidebarWidth }: { children: React
               </div>
             )}
             {groups.map(group => {
-              const items = menuItems.filter(i => i.group === group);
+              const items = visibleMenuItems.filter(i => i.group === group);
+              if (items.length === 0) return null;
               return (
                 <div key={group} className={!isCollapsed ? "mb-2" : "mb-1"}>
                   {!isCollapsed && (
@@ -398,7 +413,8 @@ function DashboardLayoutContent({ children, setSidebarWidth }: { children: React
 
           <SidebarContent className="px-2 py-2 gap-0">
             {groups.map(group => {
-              const items = menuItems.filter(i => i.group === group);
+              const items = visibleMenuItems.filter(i => i.group === group);
+              if (items.length === 0) return null;
               return (
                 <div key={group} className="mb-2">
                   <div className="px-3 mb-1">

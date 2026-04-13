@@ -2,7 +2,7 @@ import { z } from "zod";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { protectedProcedure, publicProcedure, operationalProcedure, adminProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
 import {
   getDashboardKPIs, getDailyTrend, getDailyTrendByRange,
@@ -25,6 +25,7 @@ import { nozzleRouter } from "./routers/nozzleRouter";
 import { fuelIntelligenceRouter } from "./routers/fuelIntelligenceRouter";
 import { fuelPricesRouter } from "./routers/fuelPricesRouter";
 import { cashHandoverRouter } from "./routers/cashHandoverRouter";
+import { usersRouter } from "./routers/usersRouter";
 import { bankStatementRouter } from "./routers/bankStatementRouter";
 
 // ─── Shared date range input ──────────────────────────────────────────────────
@@ -191,7 +192,7 @@ const expensesRouter = router({
   summary: protectedProcedure.input(dateRangeInput).query(async ({ input }) => {
     return getExpenseSummaryByCategory(input.startDate, input.endDate);
   }),
-  create: protectedProcedure.input(z.object({
+  create: operationalProcedure.input(z.object({
     expenseDate: safeDate,
     headAccount: z.enum(["Operating Activities", "Financing Activities", "Investing Activities", "Acquisition", "Establishment", "REPO"]),
     subHeadAccount: z.enum(["Wages", "Admin", "Electricity", "Hospitality", "Maintenance", "Performance Bonus", "Fuel", "Transport", "POS Charges", "Bank Charges", "Purchase", "Interest", "Principal", "Charges"]),
@@ -209,7 +210,7 @@ const expensesRouter = router({
     await createExpense({ ...input, amount: String(input.amount) });
     return { success: true };
   }),
-  approve: protectedProcedure.input(z.object({
+  approve: adminProcedure.input(z.object({
     id: z.number(),
     status: z.enum(["approved", "rejected"]),
     approvedBy: z.string(),
@@ -227,7 +228,7 @@ const bankRouter = router({
   summary: protectedProcedure.input(dateRangeInput).query(async ({ input }) => {
     return getBankSummary(input.startDate, input.endDate);
   }),
-  create: protectedProcedure.input(z.object({
+  create: adminProcedure.input(z.object({
     transactionDate: safeDate,
     description: z.string().min(1).max(500),
     transactionType: z.enum(["NEFT", "RTGS", "IMPS", "Cash", "Credit Card", "UPI"]),
@@ -244,7 +245,7 @@ const bankRouter = router({
     });
     return { success: true };
   }),
-  reconcile: protectedProcedure.input(z.object({
+  reconcile: adminProcedure.input(z.object({
     id: z.number(),
     status: z.enum(["matched", "unmatched", "pending"]),
   })).mutation(async ({ input }) => {
@@ -457,6 +458,7 @@ export const appRouter = router({
   fuelIntelligence: fuelIntelligenceRouter,
   fuelPrices: fuelPricesRouter,
   cashHandover: cashHandoverRouter,
+  users: usersRouter,
 });
 
 export type AppRouter = typeof appRouter;
