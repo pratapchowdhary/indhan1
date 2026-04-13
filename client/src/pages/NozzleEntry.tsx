@@ -93,6 +93,7 @@ export default function NozzleEntry() {
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [openingReadings, setOpeningReadings] = useState<Record<number, string>>({});
   const [closingReadings, setClosingReadings] = useState<Record<number, string>>({});
+  const [testingQty, setTestingQty] = useState<Record<number, string>>({}); // per-nozzle testing qty
   // Collection form state
   const [collAmount, setCollAmount] = useState("");
   const [collMode, setCollMode] = useState<"cash" | "digital" | "credit">("cash");
@@ -221,13 +222,19 @@ export default function NozzleEntry() {
     for (const nozzle of nozzles) {
       const val = closingReadings[nozzle.id];
       const opening = Number(openingReadings[nozzle.id] ?? 0);
+      const tQty = Number(testingQty[nozzle.id] ?? 0);
       if (!val || isNaN(Number(val))) {
         toast.error(`Enter closing reading for ${nozzle.label}`);
         allSaved = false;
         break;
       }
       if (Number(val) < opening) {
-        toast.error(`Closing reading for ${nozzle.label} cannot be less than opening`);
+        toast.error(`Closing reading for ${nozzle.label} cannot be less than opening (${opening.toLocaleString("en-IN")} L)`);
+        allSaved = false;
+        break;
+      }
+      if (tQty < 0) {
+        toast.error(`Testing qty for ${nozzle.label} cannot be negative`);
         allSaved = false;
         break;
       }
@@ -236,10 +243,11 @@ export default function NozzleEntry() {
         nozzleId: nozzle.id,
         readingType: "closing",
         meterReading: Number(val),
+        testingQty: tQty,
       });
     }
     if (allSaved) {
-      toast.success("Closing readings saved");
+      toast.success("Closing readings & testing quantities saved");
       setStep(4);
     }
   };
@@ -260,17 +268,19 @@ export default function NozzleEntry() {
   }, [collections]);
 
   const liveVolumes = useMemo(() => {
-    if (!nozzles) return { petrol: 0, diesel: 0 };
-    let petrol = 0, diesel = 0;
+    if (!nozzles) return { petrol: 0, diesel: 0, petrolTesting: 0, dieselTesting: 0 };
+    let petrol = 0, diesel = 0, petrolTesting = 0, dieselTesting = 0;
     for (const n of nozzles) {
       const o = Number(openingReadings[n.id] ?? 0);
       const c = Number(closingReadings[n.id] ?? 0);
-      const dispensed = Math.max(0, c - o);
-      if (n.fuelType === "petrol") petrol += dispensed;
-      else diesel += dispensed;
+      const tQty = Number(testingQty[n.id] ?? 0);
+      const gross = Math.max(0, c - o);
+      const sold = Math.max(0, gross - tQty);
+      if (n.fuelType === "petrol") { petrol += sold; petrolTesting += tQty; }
+      else { diesel += sold; dieselTesting += tQty; }
     }
-    return { petrol, diesel };
-  }, [nozzles, openingReadings, closingReadings]);
+    return { petrol, diesel, petrolTesting, dieselTesting };
+  }, [nozzles, openingReadings, closingReadings, testingQty]);
 
   const expectedValue = liveVolumes.petrol * PETROL_PRICE + liveVolumes.diesel * DIESEL_PRICE;
   const variance = collectionTotals.total - expectedValue;
@@ -618,99 +628,243 @@ export default function NozzleEntry() {
 
       {/* ── Step 3: Closing Readings ──────────────────────────────────────── */}
       {step === 3 && nozzles && (
-        <Card className="bg-card border-border/50">
-          <CardHeader className="pb-3 pt-4 px-5">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Gauge className="w-4 h-4 text-primary" /> Closing Meter Readings
-            </CardTitle>
-            <p className="text-xs text-muted-foreground">Record the meter display on each nozzle at shift end</p>
-          </CardHeader>
-          <CardContent className="px-5 pb-5 space-y-3">
-            {nozzles.map(nozzle => {
-              const c = fuelColor(nozzle.fuelType);
-              const opening = Number(openingReadings[nozzle.id] ?? 0);
-              const closing = Number(closingReadings[nozzle.id] ?? 0);
-              const dispensed = closing > opening ? closing - opening : 0;
-              return (
-                <div key={nozzle.id} className={`p-4 rounded-xl border ${c.bg} ${c.border}`}>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <Fuel className={`w-4 h-4 ${c.text}`} />
-                      <span className="text-sm font-semibold">{nozzle.label}</span>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] text-muted-foreground">Opening: {opening.toLocaleString("en-IN")} L</p>
-                      {dispensed > 0 && (
-                        <p className={`text-xs font-bold tabular-nums ${c.text}`}>
-                          Dispensed: {dispensed.toFixed(2)} L
-                        </p>
+        <div className="space-y-4">
+          <Card className="bg-card border-border/50">
+            <CardHeader className="pb-3 pt-4 px-5">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Gauge className="w-4 h-4 text-primary" /> Closing Meter Readings
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">Enter closing meter reading & testing quantity for each nozzle</p>
+            </CardHeader>
+            <CardContent className="px-5 pb-5 space-y-3">
+              {nozzles.map(nozzle => {
+                const col = fuelColor(nozzle.fuelType);
+                const opening = Number(openingReadings[nozzle.id] ?? 0);
+                const closing = Number(closingReadings[nozzle.id] ?? 0);
+                const tQty = Number(testingQty[nozzle.id] ?? 0);
+                const gross = closing > opening ? closing - opening : 0;
+                const soldQty = Math.max(0, gross - tQty);
+                const rate = nozzle.fuelType === "petrol" ? PETROL_PRICE : DIESEL_PRICE;
+                const salesAmt = soldQty * rate;
+                return (
+                  <div key={nozzle.id} className={`p-4 rounded-xl border ${col.bg} ${col.border}`}>
+                    {/* Header row */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Fuel className={`w-4 h-4 ${col.text}`} />
+                        <span className="text-sm font-semibold">{nozzle.label}</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium uppercase ${col.badge}`}>
+                          {nozzle.fuelType}
+                        </span>
+                      </div>
+                      {nozzle.pumpLabel && (
+                        <span className="text-[10px] text-muted-foreground">{nozzle.pumpLabel}</span>
                       )}
                     </div>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Closing Meter Reading (Litres)</Label>
-                    <Input
-                      type="number"
-                      placeholder={`Min: ${opening}`}
-                      value={closingReadings[nozzle.id] ?? ""}
-                      onChange={e => setClosingReadings(prev => ({ ...prev, [nozzle.id]: e.target.value }))}
-                      className="bg-background/50 border-border/50 tabular-nums text-lg font-semibold"
-                    />
-                  </div>
-                </div>
-              );
-            })}
 
-            {/* Live variance preview */}
-            {(liveVolumes.petrol > 0 || liveVolumes.diesel > 0) && (
-              <div className={`p-4 rounded-xl border ${Math.abs(variance) < 500 ? "bg-green-500/5 border-green-500/20" : "bg-red-500/5 border-red-500/20"}`}>
-                <p className="text-xs font-semibold mb-2 text-muted-foreground uppercase tracking-wider">Live Preview</p>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Petrol Dispensed</p>
-                    <p className="font-bold text-teal-400 tabular-nums">{liveVolumes.petrol.toFixed(2)} L</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Diesel Dispensed</p>
-                    <p className="font-bold text-blue-400 tabular-nums">{liveVolumes.diesel.toFixed(2)} L</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Expected Value</p>
-                    <p className="font-bold tabular-nums">{fmtCompact(expectedValue)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Collected</p>
-                    <p className="font-bold tabular-nums">{fmtCompact(collectionTotals.total)}</p>
-                  </div>
-                </div>
-                <div className={`mt-2 pt-2 border-t ${Math.abs(variance) < 500 ? "border-green-500/20" : "border-red-500/20"} flex items-center justify-between`}>
-                  <span className="text-xs font-medium">Variance</span>
-                  <span className={`text-sm font-bold tabular-nums ${Math.abs(variance) < 500 ? "text-green-400" : "text-red-400"}`}>
-                    {variance >= 0 ? "+" : ""}{fmtCompact(variance)}
-                  </span>
-                </div>
-              </div>
-            )}
+                    {/* Opening (read-only) */}
+                    <div className="mb-3 p-2.5 rounded-lg bg-muted/30 border border-border/30">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Opening Reading (Previous Shift Closing)</p>
+                      <p className="text-base font-bold tabular-nums">{opening > 0 ? opening.toLocaleString("en-IN", { minimumFractionDigits: 2 }) : "—"} L</p>
+                    </div>
 
-            <div className="flex gap-2 pt-2">
-              <Button variant="outline" onClick={() => setStep(2)} className="flex-1">
-                <ChevronLeft className="w-4 h-4 mr-1" /> Back
-              </Button>
-              <Button
-                className="flex-1"
-                onClick={handleSaveClosingReadings}
-                disabled={saveReading.isPending}
-              >
-                {saveReading.isPending ? "Saving..." : "Save & Review"} <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+                    {/* Closing input */}
+                    <div className="space-y-1 mb-3">
+                      <Label className="text-xs font-medium">Closing Meter Reading (Litres) <span className="text-destructive">*</span></Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder={opening > 0 ? `Min: ${opening.toFixed(2)}` : "e.g. 125430.50"}
+                        value={closingReadings[nozzle.id] ?? ""}
+                        onChange={e => setClosingReadings(prev => ({ ...prev, [nozzle.id]: e.target.value }))}
+                        className="bg-background/50 border-border/50 tabular-nums text-lg font-semibold h-12"
+                      />
+                    </div>
+
+                    {/* Testing qty input */}
+                    <div className="space-y-1 mb-3">
+                      <Label className="text-xs font-medium text-muted-foreground">Testing / Calibration Quantity (Litres)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        value={testingQty[nozzle.id] ?? ""}
+                        onChange={e => setTestingQty(prev => ({ ...prev, [nozzle.id]: e.target.value }))}
+                        className="bg-background/50 border-border/50 tabular-nums"
+                      />
+                    </div>
+
+                    {/* Live calculation */}
+                    {closing > 0 && closing >= opening && (
+                      <div className={`mt-2 p-3 rounded-lg border ${col.bg} ${col.border} grid grid-cols-3 gap-2 text-center`}>
+                        <div>
+                          <p className="text-[10px] text-muted-foreground">Gross Dispensed</p>
+                          <p className={`text-sm font-bold tabular-nums ${col.text}`}>{gross.toFixed(2)} L</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-muted-foreground">Sold Qty</p>
+                          <p className={`text-sm font-bold tabular-nums ${col.text}`}>{soldQty.toFixed(2)} L</p>
+                          {tQty > 0 && <p className="text-[9px] text-muted-foreground">−{tQty.toFixed(2)} L testing</p>}
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-muted-foreground">Sales Amount</p>
+                          <p className={`text-sm font-bold tabular-nums ${col.text}`}>₹{salesAmt.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</p>
+                          <p className="text-[9px] text-muted-foreground">@ ₹{rate}/L</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+
+          {/* Daily totals preview */}
+          {(liveVolumes.petrol > 0 || liveVolumes.diesel > 0) && (
+            <Card className="bg-card border-border/50">
+              <CardHeader className="pb-2 pt-3 px-5">
+                <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Shift Totals Preview</CardTitle>
+              </CardHeader>
+              <CardContent className="px-5 pb-4">
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div className="p-3 rounded-xl bg-teal-500/10 border border-teal-500/20">
+                    <p className="text-[10px] text-muted-foreground">Petrol Sold</p>
+                    <p className="text-lg font-bold text-teal-400 tabular-nums">{liveVolumes.petrol.toFixed(2)} L</p>
+                    <p className="text-xs text-teal-300 tabular-nums">₹{(liveVolumes.petrol * PETROL_PRICE).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</p>
+                    {liveVolumes.petrolTesting > 0 && <p className="text-[9px] text-muted-foreground">Testing: {liveVolumes.petrolTesting.toFixed(2)} L</p>}
+                  </div>
+                  <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                    <p className="text-[10px] text-muted-foreground">Diesel Sold</p>
+                    <p className="text-lg font-bold text-blue-400 tabular-nums">{liveVolumes.diesel.toFixed(2)} L</p>
+                    <p className="text-xs text-blue-300 tabular-nums">₹{(liveVolumes.diesel * DIESEL_PRICE).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</p>
+                    {liveVolumes.dieselTesting > 0 && <p className="text-[9px] text-muted-foreground">Testing: {liveVolumes.dieselTesting.toFixed(2)} L</p>}
+                  </div>
+                </div>
+                <div className={`p-3 rounded-xl border ${Math.abs(variance) < 500 ? "bg-green-500/5 border-green-500/20" : "bg-red-500/5 border-red-500/20"} flex items-center justify-between`}>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Expected Sales</p>
+                    <p className="text-base font-bold tabular-nums">{fmtCompact(expectedValue)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">Collected</p>
+                    <p className="text-base font-bold tabular-nums">{fmtCompact(collectionTotals.total)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">Variance</p>
+                    <p className={`text-base font-bold tabular-nums ${Math.abs(variance) < 500 ? "text-green-400" : "text-red-400"}`}>
+                      {variance >= 0 ? "+" : ""}{fmtCompact(variance)}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setStep(2)} className="flex-1">
+              <ChevronLeft className="w-4 h-4 mr-1" /> Back
+            </Button>
+            <Button
+              className="flex-1"
+              onClick={handleSaveClosingReadings}
+              disabled={saveReading.isPending}
+            >
+              {saveReading.isPending ? "Saving..." : "Save & Review"} <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
+        </div>
       )}
 
-      {/* ── Step 4: Summary & Close ───────────────────────────────────────── */}
+       {/* ── Step 4: Summary & Close ─────────────────────────────────────── */}
       {step === 4 && (
         <div className="space-y-4">
+          {/* Per-nozzle sales breakdown */}
+          <Card className="bg-card border-border/50">
+            <CardHeader className="pb-2 pt-4 px-5">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Gauge className="w-4 h-4 text-primary" /> Nozzle-wise Sales Breakdown
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">Sold Qty = Closing − Opening − Testing</p>
+            </CardHeader>
+            <CardContent className="px-5 pb-4">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs min-w-[420px]">
+                  <thead>
+                    <tr className="border-b border-border/30">
+                      <th className="text-left py-2 text-muted-foreground font-medium">Nozzle</th>
+                      <th className="text-right py-2 text-muted-foreground font-medium">Opening</th>
+                      <th className="text-right py-2 text-muted-foreground font-medium">Closing</th>
+                      <th className="text-right py-2 text-muted-foreground font-medium">Testing</th>
+                      <th className="text-right py-2 text-muted-foreground font-medium">Sold Qty</th>
+                      <th className="text-right py-2 text-muted-foreground font-medium">Rate</th>
+                      <th className="text-right py-2 text-muted-foreground font-medium">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {nozzles?.map(n => {
+                      const opening = Number(openingReadings[n.id] ?? 0);
+                      const closing = Number(closingReadings[n.id] ?? 0);
+                      const tQty = Number(testingQty[n.id] ?? 0);
+                      const gross = Math.max(0, closing - opening);
+                      const soldQty = Math.max(0, gross - tQty);
+                      const rate = n.fuelType === "petrol" ? PETROL_PRICE : DIESEL_PRICE;
+                      const amt = soldQty * rate;
+                      const col = fuelColor(n.fuelType);
+                      return (
+                        <tr key={n.id} className="border-b border-border/20 last:border-0">
+                          <td className="py-2">
+                            <div className="flex items-center gap-1.5">
+                              <Fuel className={`w-3 h-3 ${col.text}`} />
+                              <span className="font-medium">{n.label}</span>
+                            </div>
+                            {n.pumpLabel && <p className="text-[10px] text-muted-foreground ml-4.5">{n.pumpLabel}</p>}
+                          </td>
+                          <td className="text-right tabular-nums py-2">{opening > 0 ? opening.toFixed(2) : "—"}</td>
+                          <td className="text-right tabular-nums py-2">{closing > 0 ? closing.toFixed(2) : "—"}</td>
+                          <td className="text-right tabular-nums py-2 text-muted-foreground">{tQty > 0 ? tQty.toFixed(2) : "—"}</td>
+                          <td className={`text-right tabular-nums py-2 font-bold ${col.text}`}>{soldQty > 0 ? soldQty.toFixed(2) : "—"}</td>
+                          <td className="text-right tabular-nums py-2 text-muted-foreground">₹{rate}</td>
+                          <td className="text-right tabular-nums py-2 font-bold">{amt > 0 ? `₹${amt.toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "—"}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-border/50 bg-muted/20">
+                      <td colSpan={4} className="py-2 font-bold text-xs">Total</td>
+                      <td className="text-right tabular-nums py-2 font-bold">
+                        <span className="text-teal-400">{liveVolumes.petrol.toFixed(2)}L P</span>
+                        {" + "}
+                        <span className="text-blue-400">{liveVolumes.diesel.toFixed(2)}L D</span>
+                      </td>
+                      <td />
+                      <td className="text-right tabular-nums py-2 font-bold text-primary">₹{expectedValue.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Fuel totals by type */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 rounded-xl bg-teal-500/10 border border-teal-500/20">
+              <Fuel className="w-4 h-4 text-teal-400 mb-1" />
+              <p className="text-xs text-muted-foreground">Petrol Sold</p>
+              <p className="text-xl font-bold text-teal-400 tabular-nums">{liveVolumes.petrol.toFixed(2)} L</p>
+              <p className="text-xs text-teal-300 tabular-nums">₹{(liveVolumes.petrol * PETROL_PRICE).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</p>
+              {liveVolumes.petrolTesting > 0 && <p className="text-[10px] text-muted-foreground mt-1">Testing: {liveVolumes.petrolTesting.toFixed(2)} L</p>}
+            </div>
+            <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
+              <Fuel className="w-4 h-4 text-blue-400 mb-1" />
+              <p className="text-xs text-muted-foreground">Diesel Sold</p>
+              <p className="text-xl font-bold text-blue-400 tabular-nums">{liveVolumes.diesel.toFixed(2)} L</p>
+              <p className="text-xs text-blue-300 tabular-nums">₹{(liveVolumes.diesel * DIESEL_PRICE).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</p>
+              {liveVolumes.dieselTesting > 0 && <p className="text-[10px] text-muted-foreground mt-1">Testing: {liveVolumes.dieselTesting.toFixed(2)} L</p>}
+            </div>
+          </div>
+
           <Card className="bg-card border-border/50">
             <CardHeader className="pb-3 pt-4 px-5">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -718,24 +872,6 @@ export default function NozzleEntry() {
               </CardTitle>
             </CardHeader>
             <CardContent className="px-5 pb-5 space-y-4">
-              {/* Nozzle volumes */}
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Fuel Dispensed</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 rounded-xl bg-teal-500/10 border border-teal-500/20 text-center">
-                    <Fuel className="w-4 h-4 text-teal-400 mx-auto mb-1" />
-                    <p className="text-xs text-muted-foreground">Petrol</p>
-                    <p className="text-xl font-bold text-teal-400 tabular-nums">{liveVolumes.petrol.toFixed(2)} L</p>
-                    <p className="text-[10px] text-muted-foreground/60 tabular-nums">{fmtFull(liveVolumes.petrol * PETROL_PRICE)}</p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-center">
-                    <Fuel className="w-4 h-4 text-blue-400 mx-auto mb-1" />
-                    <p className="text-xs text-muted-foreground">Diesel</p>
-                    <p className="text-xl font-bold text-blue-400 tabular-nums">{liveVolumes.diesel.toFixed(2)} L</p>
-                    <p className="text-[10px] text-muted-foreground/60 tabular-nums">{fmtFull(liveVolumes.diesel * DIESEL_PRICE)}</p>
-                  </div>
-                </div>
-              </div>
 
               {/* Collections — Cash / Digital / Credit */}
               <div>

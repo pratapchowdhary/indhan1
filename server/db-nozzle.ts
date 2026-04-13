@@ -131,6 +131,7 @@ export async function getReadingsForSession(sessionId: number) {
       nozzleId: nozzleReadings.nozzleId,
       readingType: nozzleReadings.readingType,
       meterReading: nozzleReadings.meterReading,
+      testingQty: nozzleReadings.testingQty,
       recordedAt: nozzleReadings.recordedAt,
       recordedBy: nozzleReadings.recordedBy,
       notes: nozzleReadings.notes,
@@ -149,6 +150,7 @@ export async function upsertNozzleReading(data: {
   nozzleId: number;
   readingType: "opening" | "closing";
   meterReading: number;
+  testingQty?: number;
   recordedBy?: string;
   notes?: string;
 }) {
@@ -172,6 +174,7 @@ export async function upsertNozzleReading(data: {
       .update(nozzleReadings)
       .set({
         meterReading: String(data.meterReading),
+        testingQty: data.testingQty != null ? String(data.testingQty) : (existing[0] as any).testingQty ?? "0",
         recordedBy: data.recordedBy ?? null,
         notes: data.notes ?? null,
         recordedAt: new Date(),
@@ -186,6 +189,7 @@ export async function upsertNozzleReading(data: {
     nozzleId: data.nozzleId,
     readingType: data.readingType,
     meterReading: String(data.meterReading),
+    testingQty: String(data.testingQty ?? 0),
     recordedBy: data.recordedBy ?? null,
     notes: data.notes ?? null,
     recordedAt: new Date(),
@@ -254,14 +258,17 @@ export async function getSessionSummary(sessionId: number) {
   const readings = await getReadingsForSession(sessionId);
   const collections = await getCollectionsForSession(sessionId);
 
-  // Compute volume dispensed per nozzle (closing - opening)
-  const nozzleMap = new Map<number, { opening?: number; closing?: number; fuelType?: string; label?: string; nozzleNumber?: number }>();
+  // Compute volume dispensed per nozzle: soldQty = closing - opening - testingQty
+  const nozzleMap = new Map<number, { opening?: number; closing?: number; testingQty?: number; fuelType?: string; label?: string; nozzleNumber?: number; pumpLabel?: string }>();
   for (const r of readings) {
     const nid = r.nozzleId;
     if (!nozzleMap.has(nid)) nozzleMap.set(nid, { fuelType: r.fuelType ?? undefined, label: r.nozzleLabel ?? undefined, nozzleNumber: r.nozzleNumber ?? undefined });
     const entry = nozzleMap.get(nid)!;
     if (r.readingType === "opening") entry.opening = Number(r.meterReading);
-    if (r.readingType === "closing") entry.closing = Number(r.meterReading);
+    if (r.readingType === "closing") {
+      entry.closing = Number(r.meterReading);
+      entry.testingQty = Number(r.testingQty ?? 0);
+    }
   }
 
   let totalPetrolLitres = 0;
@@ -269,12 +276,17 @@ export async function getSessionSummary(sessionId: number) {
   const nozzleSummaries = [];
 
   for (const [nid, data] of Array.from(nozzleMap.entries())) {
-    const dispensed = (data.closing !== undefined && data.opening !== undefined)
+    const testingQty = data.testingQty ?? 0;
+    const grossDispensed = (data.closing !== undefined && data.opening !== undefined)
       ? Math.max(0, data.closing - data.opening)
       : null;
-    if (dispensed !== null) {
-      if (data.fuelType === "petrol") totalPetrolLitres += dispensed;
-      if (data.fuelType === "diesel") totalDieselLitres += dispensed;
+    // soldQty = closing - opening - testingQty
+    const soldQty = grossDispensed !== null
+      ? Math.max(0, grossDispensed - testingQty)
+      : null;
+    if (soldQty !== null) {
+      if (data.fuelType === "petrol") totalPetrolLitres += soldQty;
+      if (data.fuelType === "diesel") totalDieselLitres += soldQty;
     }
     nozzleSummaries.push({
       nozzleId: nid,
@@ -283,7 +295,10 @@ export async function getSessionSummary(sessionId: number) {
       fuelType: data.fuelType,
       opening: data.opening ?? null,
       closing: data.closing ?? null,
-      dispensed,
+      testingQty,
+      grossDispensed,
+      dispensed: soldQty,  // backward compat: dispensed = soldQty
+      soldQty,
     });
   }
 

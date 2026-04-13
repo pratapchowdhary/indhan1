@@ -1,0 +1,1 @@
+ALTER TABLE `nozzle_readings` ADD `testing_qty` decimal(8,2) DEFAULT '0';

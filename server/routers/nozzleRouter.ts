@@ -111,6 +111,7 @@ export const nozzleRouter = router({
       nozzleId: z.number().int().positive(),
       readingType: z.enum(["opening", "closing"]),
       meterReading: z.number().min(0).max(9999999),
+      testingQty: z.number().min(0).max(9999).optional(),
       recordedBy: z.string().max(100).optional(),
       notes: z.string().max(500).optional(),
     }))
@@ -125,6 +126,7 @@ export const nozzleRouter = router({
         nozzleId: input.nozzleId,
         readingType: input.readingType,
         meterReading: input.meterReading,
+        testingQty: input.testingQty,
         recordedBy: input.recordedBy,
         notes: input.notes,
       });

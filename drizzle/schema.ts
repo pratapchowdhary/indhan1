@@ -583,6 +583,7 @@ export const nozzleReadings = mysqlTable("nozzle_readings", {
   nozzleId: int("nozzle_id").notNull(),
   readingType: mysqlEnum("reading_type", ["opening", "closing"]).notNull(),
   meterReading: decimal("meter_reading", { precision: 12, scale: 2 }).notNull(), // cumulative meter in litres
+  testingQty: decimal("testing_qty", { precision: 8, scale: 2 }).default("0"),   // daily testing/calibration qty in litres
   recordedAt: timestamp("recorded_at").defaultNow().notNull(),
   recordedBy: varchar("recorded_by", { length: 100 }),
   notes: text("notes"),
