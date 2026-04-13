@@ -178,23 +178,20 @@ export default function NozzleEntry() {
 
   const handleSaveOpeningReadings = async () => {
     if (!sessionId || !nozzles) return;
+    // Opening readings are auto-populated from previous shift closing — save them directly
     let allSaved = true;
     for (const nozzle of nozzles) {
-      const val = openingReadings[nozzle.id];
-      if (!val || isNaN(Number(val))) {
-        toast.error(`Enter opening reading for ${nozzle.label}`);
-        allSaved = false;
-        break;
-      }
+      const prev = prevClosingMap[nozzle.id];
+      const reading = prev?.reading ?? 0; // default to 0 if no previous record
       await saveReading.mutateAsync({
         sessionId,
         nozzleId: nozzle.id,
         readingType: "opening",
-        meterReading: Number(val),
-      });
+        meterReading: reading,
+      }).catch(() => { allSaved = false; });
     }
     if (allSaved) {
-      toast.success("Opening readings saved");
+      toast.success("Opening readings confirmed — proceed to log collections");
       setStep(2);
     }
   };
@@ -362,14 +359,19 @@ export default function NozzleEntry() {
         </Card>
       )}
 
-      {/* ── Step 1: Opening Readings ──────────────────────────────────────── */}
+      {/* ── Step 1: Opening Readings (READ-ONLY — auto from previous shift closing) ── */}
       {step === 1 && nozzles && (
         <Card className="bg-card border-border/50">
-          <CardHeader className="pb-3 pt-4 px-5">
+          <CardHeader className="pb-2 pt-4 px-5">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Gauge className="w-4 h-4 text-primary" /> Opening Meter Readings
             </CardTitle>
-            <p className="text-xs text-muted-foreground">Previous shift closing shown below — verify and enter today's opening reading</p>
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/25">
+                <CheckCircle2 className="w-3 h-3" /> Auto-filled from previous shift
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Opening readings are carried over automatically from the previous shift's closing. No entry needed.</p>
           </CardHeader>
           <CardContent className="px-5 pb-5 space-y-3">
             {nozzles.map(nozzle => {
@@ -377,58 +379,33 @@ export default function NozzleEntry() {
               const prev = prevClosingMap[nozzle.id];
               const hasPrev = prev?.reading != null;
               return (
-                <div key={nozzle.id} className={`rounded-xl border ${c.bg} ${c.border} overflow-hidden`}>
-                  {/* Previous closing banner */}
-                  <div className="px-4 pt-3 pb-2 border-b border-border/20">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Fuel className={`w-4 h-4 ${c.text}`} />
-                        <span className="text-sm font-semibold">{nozzle.label}</span>
-                      </div>
-                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${c.badge}`}>
-                        {nozzle.fuelType.toUpperCase()}
-                      </span>
+                <div key={nozzle.id} className={`p-4 rounded-xl border ${c.bg} ${c.border}`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Fuel className={`w-4 h-4 ${c.text}`} />
+                      <span className="text-sm font-semibold">{nozzle.label}</span>
                     </div>
-                    {/* Previous shift closing reading */}
-                    <div className="mt-2 flex items-center justify-between">
-                      <div>
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Prev. Shift Closing</p>
-                        {hasPrev ? (
-                          <p className="text-base font-bold tabular-nums text-amber-400">
-                            {prev.reading!.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} L
-                          </p>
-                        ) : (
-                          <p className="text-xs text-muted-foreground italic">No previous record</p>
-                        )}
-                        {hasPrev && prev.date && (
-                          <p className="text-[10px] text-muted-foreground/60">from {prev.date}</p>
-                        )}
-                      </div>
-                      {hasPrev && (
-                        <button
-                          onClick={() => setOpeningReadings(r => ({ ...r, [nozzle.id]: String(prev.reading!) }))}
-                          className="text-[11px] font-medium px-2.5 py-1 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-colors"
-                        >
-                          Use as Opening
-                        </button>
+                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${c.badge}`}>
+                      {nozzle.fuelType.toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Opening Reading (Litres)</p>
+                    <div className="flex items-center justify-between">
+                      {hasPrev ? (
+                        <p className="text-xl font-bold tabular-nums">
+                          {prev.reading!.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          <span className="text-sm font-normal text-muted-foreground ml-1">L</span>
+                        </p>
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic">No previous record — will default to 0</p>
+                      )}
+                      {hasPrev && prev.date && (
+                        <span className="text-[10px] text-muted-foreground/60 bg-muted/30 px-2 py-0.5 rounded-full">
+                          from {prev.date}
+                        </span>
                       )}
                     </div>
-                  </div>
-                  {/* Opening reading input */}
-                  <div className="px-4 py-3 space-y-1">
-                    <Label className="text-xs text-muted-foreground">Today's Opening Meter Reading (Litres)</Label>
-                    <Input
-                      type="number"
-                      placeholder={hasPrev ? String(prev.reading!) : "e.g. 125430.50"}
-                      value={openingReadings[nozzle.id] ?? ""}
-                      onChange={e => setOpeningReadings(prev => ({ ...prev, [nozzle.id]: e.target.value }))}
-                      className="bg-background/50 border-border/50 tabular-nums text-lg font-semibold"
-                    />
-                    {hasPrev && openingReadings[nozzle.id] && Number(openingReadings[nozzle.id]) !== prev.reading && (
-                      <p className="text-[10px] text-amber-400/80">
-                        ⚠ Differs from previous closing by {(Number(openingReadings[nozzle.id]) - prev.reading!).toFixed(2)} L
-                      </p>
-                    )}
                   </div>
                 </div>
               );
@@ -442,7 +419,7 @@ export default function NozzleEntry() {
                 onClick={handleSaveOpeningReadings}
                 disabled={saveReading.isPending}
               >
-                {saveReading.isPending ? "Saving..." : "Save & Continue"} <ChevronRight className="w-4 h-4 ml-1" />
+                {saveReading.isPending ? "Confirming..." : "Confirm & Continue"} <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
             </div>
           </CardContent>
