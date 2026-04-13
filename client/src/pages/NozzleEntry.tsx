@@ -105,6 +105,17 @@ export default function NozzleEntry() {
   // Data queries
   const { data: staffList } = trpc.nozzle.getStaffList.useQuery();
   const { data: nozzles } = trpc.nozzle.getNozzles.useQuery();
+  // Previous shift closing readings — shown on Opening Readings step for reference
+  const { data: prevClosingReadings } = trpc.nozzle.getPreviousClosingReadings.useQuery(
+    { shiftDate },
+    { enabled: step >= 1 }
+  );
+  const prevClosingMap = useMemo(() => {
+    if (!prevClosingReadings) return {} as Record<number, { reading: number | null; date: string | null }>;
+    return Object.fromEntries(
+      prevClosingReadings.map(r => [r.nozzleId, { reading: r.previousClosingReading, date: r.previousShiftDate }])
+    );
+  }, [prevClosingReadings]);
   const { data: collections, refetch: refetchCollections } = trpc.nozzle.getCollections.useQuery(
     { sessionId: sessionId! },
     { enabled: sessionId !== null }
@@ -359,31 +370,66 @@ export default function NozzleEntry() {
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Gauge className="w-4 h-4 text-primary" /> Opening Meter Readings
             </CardTitle>
-            <p className="text-xs text-muted-foreground">Record the meter display on each nozzle at shift start</p>
+            <p className="text-xs text-muted-foreground">Previous shift closing shown below — verify and enter today's opening reading</p>
           </CardHeader>
           <CardContent className="px-5 pb-5 space-y-3">
             {nozzles.map(nozzle => {
               const c = fuelColor(nozzle.fuelType);
+              const prev = prevClosingMap[nozzle.id];
+              const hasPrev = prev?.reading != null;
               return (
-                <div key={nozzle.id} className={`p-4 rounded-xl border ${c.bg} ${c.border}`}>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <Fuel className={`w-4 h-4 ${c.text}`} />
-                      <span className="text-sm font-semibold">{nozzle.label}</span>
+                <div key={nozzle.id} className={`rounded-xl border ${c.bg} ${c.border} overflow-hidden`}>
+                  {/* Previous closing banner */}
+                  <div className="px-4 pt-3 pb-2 border-b border-border/20">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Fuel className={`w-4 h-4 ${c.text}`} />
+                        <span className="text-sm font-semibold">{nozzle.label}</span>
+                      </div>
+                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${c.badge}`}>
+                        {nozzle.fuelType.toUpperCase()}
+                      </span>
                     </div>
-                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${c.badge}`}>
-                      {nozzle.fuelType.toUpperCase()}
-                    </span>
+                    {/* Previous shift closing reading */}
+                    <div className="mt-2 flex items-center justify-between">
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Prev. Shift Closing</p>
+                        {hasPrev ? (
+                          <p className="text-base font-bold tabular-nums text-amber-400">
+                            {prev.reading!.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} L
+                          </p>
+                        ) : (
+                          <p className="text-xs text-muted-foreground italic">No previous record</p>
+                        )}
+                        {hasPrev && prev.date && (
+                          <p className="text-[10px] text-muted-foreground/60">from {prev.date}</p>
+                        )}
+                      </div>
+                      {hasPrev && (
+                        <button
+                          onClick={() => setOpeningReadings(r => ({ ...r, [nozzle.id]: String(prev.reading!) }))}
+                          className="text-[11px] font-medium px-2.5 py-1 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-colors"
+                        >
+                          Use as Opening
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Meter Reading (Litres)</Label>
+                  {/* Opening reading input */}
+                  <div className="px-4 py-3 space-y-1">
+                    <Label className="text-xs text-muted-foreground">Today's Opening Meter Reading (Litres)</Label>
                     <Input
                       type="number"
-                      placeholder="e.g. 125430.50"
+                      placeholder={hasPrev ? String(prev.reading!) : "e.g. 125430.50"}
                       value={openingReadings[nozzle.id] ?? ""}
                       onChange={e => setOpeningReadings(prev => ({ ...prev, [nozzle.id]: e.target.value }))}
                       className="bg-background/50 border-border/50 tabular-nums text-lg font-semibold"
                     />
+                    {hasPrev && openingReadings[nozzle.id] && Number(openingReadings[nozzle.id]) !== prev.reading && (
+                      <p className="text-[10px] text-amber-400/80">
+                        ⚠ Differs from previous closing by {(Number(openingReadings[nozzle.id]) - prev.reading!).toFixed(2)} L
+                      </p>
+                    )}
                   </div>
                 </div>
               );

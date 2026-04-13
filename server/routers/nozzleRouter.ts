@@ -23,6 +23,7 @@ import {
   getRecentDayReconciliations,
   getEmployeesForNozzle,
   autoPopulateDailyReport,
+  getPreviousClosingReadings,
 } from "../db-nozzle";
 
 const safeDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD");
@@ -40,6 +41,14 @@ export const nozzleRouter = router({
   getStaffList: protectedProcedure.query(async () => {
     return getEmployeesForNozzle();
   }),
+
+  /** Get the most recent closing meter reading for each nozzle before the given shift date.
+   *  Used to display previous shift closing on the Opening Readings screen. */
+  getPreviousClosingReadings: protectedProcedure
+    .input(z.object({ shiftDate: safeDate }))
+    .query(async ({ input }) => {
+      return getPreviousClosingReadings(input.shiftDate);
+    }),
 
   // ── Shift Sessions ─────────────────────────────────────────────────────────
   startShift: protectedProcedure

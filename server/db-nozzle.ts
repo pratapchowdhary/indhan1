@@ -428,10 +428,67 @@ export async function getRecentDayReconciliations(limit = 30) {
 
 export async function getEmployeesForNozzle() {
   const db = await getDb();
+  // Filter out test/dummy employees (names containing 'Test' or 'test')
   return db
     .select({ id: employees.id, name: employees.name, role: employees.role })
     .from(employees)
-    .where(eq(employees.isActive, true));
+    .where(
+      and(
+        eq(employees.isActive, true),
+        sql`${employees.name} NOT LIKE '%Test%'`,
+        sql`${employees.name} NOT LIKE '%test%'`,
+        sql`${employees.name} NOT LIKE '%dummy%'`,
+        sql`${employees.name} NOT LIKE '%Dummy%'`
+      )
+    )
+    .orderBy(employees.name);
+}
+
+/** Get the most recent closing meter reading for each nozzle (from any previous session).
+ *  Used to pre-fill the Opening Readings step so staff can verify continuity. */
+export async function getPreviousClosingReadings(shiftDate: string) {
+  const db = await getDb();
+  // Get all nozzles first
+  const allNozzles = await db
+    .select({ id: nozzles.id, label: nozzles.label, fuelType: nozzles.fuelType, nozzleNumber: nozzles.nozzleNumber })
+    .from(nozzles)
+    .where(eq(nozzles.isActive, true))
+    .orderBy(nozzles.nozzleNumber);
+
+  // For each nozzle, find the most recent closing reading before this shift date
+  const results = await Promise.all(
+    allNozzles.map(async (nozzle) => {
+      const rows = await db
+        .select({
+          meterReading: nozzleReadings.meterReading,
+          readingType: nozzleReadings.readingType,
+          shiftDate: shiftSessions.shiftDate,
+          recordedAt: nozzleReadings.recordedAt,
+        })
+        .from(nozzleReadings)
+        .innerJoin(shiftSessions, eq(nozzleReadings.sessionId, shiftSessions.id))
+        .where(
+          and(
+            eq(nozzleReadings.nozzleId, nozzle.id),
+            eq(nozzleReadings.readingType, 'closing'),
+            sql`${shiftSessions.shiftDate} < ${shiftDate}`
+          )
+        )
+        .orderBy(desc(shiftSessions.shiftDate), desc(nozzleReadings.recordedAt))
+        .limit(1);
+
+      return {
+        nozzleId: nozzle.id,
+        nozzleLabel: nozzle.label,
+        fuelType: nozzle.fuelType,
+        nozzleNumber: nozzle.nozzleNumber,
+        previousClosingReading: rows.length > 0 ? Number(rows[0].meterReading) : null,
+        previousShiftDate: rows.length > 0 ? rows[0].shiftDate : null,
+      };
+    })
+  );
+
+  return results;
 }
 
 // ─── Auto-populate daily_reports from nozzle data ────────────────────────────
