@@ -157,13 +157,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   });
   const { loading, user } = useAuth();
 
+  // Detect auth_error query param set by the OAuth callback on failure
+  const [authError, setAuthError] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return new URLSearchParams(window.location.search).get('auth_error');
+  });
+
   useEffect(() => {
     localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
   }, [sidebarWidth]);
 
+  // Remove the error param from the URL without reloading
+  useEffect(() => {
+    if (!authError) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete('auth_error');
+    window.history.replaceState({}, '', url.toString());
+  }, [authError]);
+
   if (loading) return <DashboardLayoutSkeleton />;
 
   if (!user) {
+    const errorMessage = authError === 'expired'
+      ? 'Your login session expired — please try again.'
+      : authError
+      ? 'Sign-in failed — please try again.'
+      : null;
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="flex flex-col items-center gap-8 p-8 max-w-sm w-full">
@@ -176,12 +195,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <p className="text-sm text-muted-foreground mt-1">Fuel Station Operations Platform</p>
             </div>
           </div>
-          <div className="text-center space-y-2">
-            <h2 className="text-xl font-semibold">Welcome back</h2>
-            <p className="text-sm text-muted-foreground">Sign in to manage your fuel station</p>
-          </div>
-          <Button onClick={() => { window.location.href = getLoginUrl(); }} size="lg" className="w-full font-semibold h-12 text-base">
-            Sign in to Indhan
+          {errorMessage ? (
+            <div className="w-full rounded-lg bg-destructive/10 border border-destructive/30 px-4 py-3 text-center">
+              <p className="text-sm font-semibold text-destructive">{errorMessage}</p>
+              <p className="text-xs text-muted-foreground mt-1">Tap the button below to sign in again.</p>
+            </div>
+          ) : (
+            <div className="text-center space-y-2">
+              <h2 className="text-xl font-semibold">Welcome back</h2>
+              <p className="text-sm text-muted-foreground">Sign in to manage your fuel station</p>
+            </div>
+          )}
+          <Button
+            onClick={() => { setAuthError(null); window.location.href = getLoginUrl(); }}
+            size="lg"
+            className="w-full font-semibold h-12 text-base"
+          >
+            {errorMessage ? 'Try Sign In Again' : 'Sign in to Indhan'}
           </Button>
         </div>
       </div>
