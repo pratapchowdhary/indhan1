@@ -30,6 +30,7 @@ import FuelPrices from "./pages/FuelPrices";
 import ReceiptScanner from "./pages/ReceiptScanner";
 import CashHandover from "./pages/CashHandover";
 import UserManagement from "./pages/UserManagement";
+import AuditLog from "./pages/AuditLog";
 import { useAuth } from "./_core/hooks/useAuth";
 
 // Role-based route access map — mirrors DashboardLayout menuItems roles
@@ -58,6 +59,8 @@ const ROUTE_ROLES: Record<string, UserRole[]> = {
   "/nozzle-entry":        ["admin", "owner", "accountant", "incharge", "pump_attendant", "user"],
   "/about":               ["admin", "owner", "accountant", "incharge", "pump_attendant", "user"],
   "/users":               ["admin", "owner"],
+  "/audit-log":           ["admin", "owner", "accountant"],
+  "/invite/accept":       ["admin", "owner", "accountant", "incharge", "pump_attendant", "user"],
 };
 
 // Default landing page per role
@@ -117,6 +120,7 @@ function Router() {
         <Route path="/receipt-scanner" component={() => <GuardedRoute path="/receipt-scanner" component={ReceiptScanner} />} />
         <Route path="/cash-handover" component={() => <GuardedRoute path="/cash-handover" component={CashHandover} />} />
         <Route path="/users" component={() => <GuardedRoute path="/users" component={UserManagement} />} />
+        <Route path="/audit-log" component={() => <GuardedRoute path="/audit-log" component={AuditLog} />} />
         <Route component={NotFound} />
       </Switch>
     </DashboardLayout>

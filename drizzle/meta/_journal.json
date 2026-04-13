@@ -99,6 +99,13 @@
       "when": 1776091008458,
       "tag": "0013_special_shadowcat",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "5",
+      "when": 1776093627986,
+      "tag": "0014_bizarre_lionheart",
+      "breakpoints": true
     }
   ]
 }

@@ -29,7 +29,7 @@ import {
   LayoutDashboard, RefreshCw, Users, Package, Receipt,
   Landmark, TrendingUp, FileUp, Settings, LogOut,
   PanelLeft, Fuel, UserCheck, ChevronRight, Bell, Sun, Moon, Info,
-  Wrench, IndianRupee, ScanFace, Gauge, Tag, ScanLine, Banknote, ClipboardList, Upload, FlaskConical, UserCog,
+  Wrench, IndianRupee, ScanFace, Gauge, Tag, ScanLine, Banknote, ClipboardList, Upload, FlaskConical, UserCog, ClipboardCheck,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -77,8 +77,9 @@ const menuItems = [
   { icon: Wrench,          label: "Assets & Equipment",  path: "/assets",    group: "Setup", roles: ADMIN_INCHARGE },
   { icon: FileUp,          label: "Import Data",         path: "/import",    group: "Setup", roles: ADMIN_ONLY },
   { icon: Settings,        label: "Settings",            path: "/settings",  group: "Setup", roles: ADMIN_ONLY },
-  { icon: UserCog,         label: "User Management",     path: "/users",     group: "Setup", roles: ADMIN_ONLY },
-  { icon: Info,            label: "About",               path: "/about",     group: "Setup", roles: ALL_ROLES },
+  { icon: UserCog,         label: "User Management",     path: "/users",       group: "Setup", roles: ADMIN_ONLY },
+  { icon: ClipboardCheck,  label: "Audit Log",           path: "/audit-log",   group: "Setup", roles: ADMIN_ACCOUNTANT },
+  { icon: Info,            label: "About",               path: "/about",       group: "Setup", roles: ALL_ROLES },
 ];
 
 // Bottom nav shows the 5 most-used items on mobile

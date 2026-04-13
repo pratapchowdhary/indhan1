@@ -26,6 +26,9 @@ import { fuelIntelligenceRouter } from "./routers/fuelIntelligenceRouter";
 import { fuelPricesRouter } from "./routers/fuelPricesRouter";
 import { cashHandoverRouter } from "./routers/cashHandoverRouter";
 import { usersRouter } from "./routers/usersRouter";
+import { invitationsRouter } from "./routers/invitationsRouter";
+import { auditLogRouter } from "./routers/auditLogRouter";
+import { logAudit } from "./routers/auditLogRouter";
 import { bankStatementRouter } from "./routers/bankStatementRouter";
 
 // ─── Shared date range input ──────────────────────────────────────────────────
@@ -203,19 +206,21 @@ const expensesRouter = router({
     paidBy: z.string().max(100).optional(),
     paymentSource: z.enum(["bank", "cash_nozzle", "cash_general"]).default("bank"),
     nozzleId: z.number().int().positive().optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     if (input.paymentSource === "cash_nozzle" && !input.nozzleId) {
       throw new TRPCError({ code: "BAD_REQUEST", message: "Nozzle must be selected for Cash from Nozzle expenses" });
     }
     await createExpense({ ...input, amount: String(input.amount) });
+    await logAudit({ userId: ctx.user.id, userName: ctx.user.name, userRole: ctx.user.role, action: "create", module: "expenses", details: `${input.subHeadAccount}: ₹${input.amount} — ${input.description}` });
     return { success: true };
   }),
   approve: adminProcedure.input(z.object({
     id: z.number(),
     status: z.enum(["approved", "rejected"]),
     approvedBy: z.string(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     await updateExpenseApproval(input.id, input.status, input.approvedBy);
+    await logAudit({ userId: ctx.user.id, userName: ctx.user.name, userRole: ctx.user.role, action: "approve", module: "expenses", resourceId: input.id, details: `Status: ${input.status} by ${input.approvedBy}` });
     return { success: true };
   }),
 });
@@ -236,20 +241,22 @@ const bankRouter = router({
     deposit: z.number().min(0).max(100_000_000).default(0),
     balance: z.number().optional(),
     referenceNo: z.string().max(100).optional(),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     await createBankTransaction({
       ...input,
       withdrawal: String(input.withdrawal),
       deposit: String(input.deposit),
       balance: input.balance !== undefined ? String(input.balance) : undefined,
     });
+    await logAudit({ userId: ctx.user.id, userName: ctx.user.name, userRole: ctx.user.role, action: "create", module: "bank", details: `${input.transactionType}: ₹${input.deposit || input.withdrawal} — ${input.description}` });
     return { success: true };
   }),
   reconcile: adminProcedure.input(z.object({
     id: z.number(),
     status: z.enum(["matched", "unmatched", "pending"]),
-  })).mutation(async ({ input }) => {
+  })).mutation(async ({ input, ctx }) => {
     await updateBankReconciliation(input.id, input.status);
+    await logAudit({ userId: ctx.user.id, userName: ctx.user.name, userRole: ctx.user.role, action: "update", module: "bank", resourceId: input.id, details: `Reconciliation status: ${input.status}` });
     return { success: true };
   }),
 });
@@ -459,6 +466,8 @@ export const appRouter = router({
   fuelPrices: fuelPricesRouter,
   cashHandover: cashHandoverRouter,
   users: usersRouter,
+  invitations: invitationsRouter,
+  auditLog: auditLogRouter,
 });
 
 export type AppRouter = typeof appRouter;

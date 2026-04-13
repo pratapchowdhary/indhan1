@@ -701,3 +701,32 @@
 - [x] Backend: add role guards to Employees/Payroll write (admin only)
 - [x] Backend: add role guards to Settings/Import (admin only)
 - [x] Clear all test data from Assets & Equipment table
+
+## Invite by Email & Audit Log
+- [ ] Schema: add user_invitations table (token, email, role, invitedBy, expiresAt, acceptedAt)
+- [ ] Schema: add audit_logs table (userId, userRole, action, module, details, ipAddress, createdAt)
+- [ ] Backend: invite.create procedure — generate token, store invitation, send email notification
+- [ ] Backend: invite.accept procedure — validate token, create/update user record, mark accepted
+- [ ] Backend: invite.list procedure — list pending/accepted invitations (admin only)
+- [ ] Backend: invite.revoke procedure — delete pending invitation (admin only)
+- [ ] Backend: audit log middleware — auto-capture all admin/accountant mutations with context
+- [ ] Backend: auditLog.list procedure — paginated list with filters (user, module, date range)
+- [ ] Frontend: User Management page — Add "Invite User" button with email + role form
+- [ ] Frontend: User Management page — Show pending invitations list with revoke option
+- [ ] Frontend: Audit Log page — table with filters (user, module, date), export to CSV
+- [ ] Frontend: Add Audit Log to sidebar under Setup (admin/accountant only)
+- [ ] Frontend: Accept invite page at /invite/:token — show role assignment, confirm join
+
+## Invite by Email & Audit Log — COMPLETED (Apr 13)
+- [x] Schema: add user_invitations table (token, email, role, invitedBy, expiresAt, acceptedAt, status)
+- [x] Schema: add audit_logs table (userId, userName, userRole, action, module, resourceId, details, ipAddress, createdAt)
+- [x] Backend: invitationsRouter — create (generate token, store, notify owner), list, revoke, getByToken, accept
+- [x] Backend: auditLogRouter — list with pagination (page/pageSize), filters (module, action, search, userId, date range), stats
+- [x] Backend: logAudit() helper called on expenses create, bank create, user role change, invitation create/revoke
+- [x] Frontend: UserManagement.tsx — Invite User button opens dialog with email + role form, generates invite link
+- [x] Frontend: UserManagement.tsx — Pending Invitations card shows active invites with copy/revoke buttons
+- [x] Frontend: UserManagement.tsx — Invitation History card shows past invites with status badges
+- [x] Frontend: AuditLog.tsx — paginated table with search, module filter, action filter, pagination
+- [x] Frontend: AuditLog added to sidebar under Setup (admin/accountant only)
+- [x] Frontend: /audit-log route added to App.tsx (admin/accountant only via route guard)
+- [x] TypeScript: 0 errors across all new files

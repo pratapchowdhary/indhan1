@@ -3,6 +3,7 @@ import { adminProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { users } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
+import { logAudit } from "./auditLogRouter";
 
 const ROLE_LABELS: Record<string, string> = {
   admin: "Admin",
@@ -57,6 +58,7 @@ export const usersRouter = router({
         .set({ role: input.role })
         .where(eq(users.id, input.userId));
 
+      await logAudit({ userId: ctx.user.id, userName: ctx.user.name, userRole: ctx.user.role, action: "role_change", module: "users", resourceId: input.userId, details: `Role changed to: ${input.role}` });
       return { success: true };
     }),
 });

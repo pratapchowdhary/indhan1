@@ -782,3 +782,37 @@ export const bankStatementUploads = mysqlTable("bank_statement_uploads", {
 });
 export type BankStatementUpload = typeof bankStatementUploads.$inferSelect;
 export type InsertBankStatementUpload = typeof bankStatementUploads.$inferInsert;
+
+// ─── User Invitations ─────────────────────────────────────────────────────────
+// Admin can invite new users by email. Token is sent via email notification.
+export const userInvitations = mysqlTable("user_invitations", {
+  id: int("id").autoincrement().primaryKey(),
+  email: varchar("email", { length: 320 }).notNull(),
+  role: mysqlEnum("role", ["owner", "incharge", "accountant", "user", "admin", "pump_attendant"]).default("user").notNull(),
+  token: varchar("token", { length: 128 }).notNull().unique(),
+  invitedBy: int("invitedBy").notNull(),                              // users.id of admin who invited
+  invitedByName: varchar("invitedByName", { length: 255 }),
+  status: mysqlEnum("status", ["pending", "accepted", "revoked", "expired"]).default("pending").notNull(),
+  acceptedAt: timestamp("acceptedAt"),
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type UserInvitation = typeof userInvitations.$inferSelect;
+export type InsertUserInvitation = typeof userInvitations.$inferInsert;
+
+// ─── Audit Logs ───────────────────────────────────────────────────────────────
+// Tracks all create/update/delete actions by admin and accountant roles.
+export const auditLogs = mysqlTable("audit_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),                                    // users.id
+  userName: varchar("userName", { length: 255 }),
+  userRole: varchar("userRole", { length: 64 }),
+  action: varchar("action", { length: 64 }).notNull(),               // e.g. "create", "update", "delete", "approve"
+  module: varchar("module", { length: 64 }).notNull(),               // e.g. "expenses", "bank", "customers"
+  resourceId: varchar("resourceId", { length: 64 }),                 // ID of the affected record
+  details: text("details"),                                           // JSON string with before/after or summary
+  ipAddress: varchar("ipAddress", { length: 64 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type InsertAuditLog = typeof auditLogs.$inferInsert;
