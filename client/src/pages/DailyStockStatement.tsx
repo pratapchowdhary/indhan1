@@ -255,21 +255,34 @@ function AddClosingStockDialog({
             />
           </div>
 
-          {/* Opening stock info banner */}
-          {openP !== null && openD !== null ? (
-            <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/5 border border-primary/15 text-xs">
-              <Info className="w-3.5 h-3.5 text-primary shrink-0" />
-              <div className="flex gap-4">
-                <span><span className="text-muted-foreground">Opening Petrol:</span> <span className="font-semibold text-teal-400 tabular-nums">{fmtL(openP)} L</span></span>
-                <span><span className="text-muted-foreground">Opening Diesel:</span> <span className="font-semibold text-blue-400 tabular-nums">{fmtL(openD)} L</span></span>
+          {/* Opening balance carry-over banner */}
+          <div className={`rounded-lg border p-3 text-xs ${openP !== null && openD !== null ? 'bg-green-500/5 border-green-500/25' : 'bg-amber-500/5 border-amber-500/20'}`}>
+            {openP !== null && openD !== null ? (
+              <>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <CheckCircle className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                  <span className="font-semibold text-green-400">Opening balance auto-carried from {prevDate}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-2 rounded-md bg-teal-500/10 border border-teal-500/20">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Petrol Opening</p>
+                    <p className="font-bold text-teal-400 tabular-nums text-sm">{fmtL(openP)} L</p>
+                    <p className="text-[9px] text-muted-foreground mt-0.5">← {prevDate} closing</p>
+                  </div>
+                  <div className="p-2 rounded-md bg-blue-500/10 border border-blue-500/20">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Diesel Opening</p>
+                    <p className="font-bold text-blue-400 tabular-nums text-sm">{fmtL(openD)} L</p>
+                    <p className="text-[9px] text-muted-foreground mt-0.5">← {prevDate} closing</p>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span>No closing record for {prevDate} — opening will default to 0. Enter yesterday's closing first.</span>
               </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/5 border border-amber-500/20 text-xs text-muted-foreground">
-              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              No previous day record found — opening stock will default to 0.
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Petrol closing */}
           <div className="space-y-2 p-3 rounded-lg border border-teal-500/20 bg-teal-500/5">
