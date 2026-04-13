@@ -744,3 +744,13 @@
 - [x] Remove Daily Activity from sidebar (was never a separate sidebar item — already merged)
 - [x] Update App.tsx routes: /daily-activity was not a separate route — already on /nozzle-entry
 - [x] TypeScript: 0 errors after all changes
+
+## Daily Stock Register — Read-Only (Apr 14)
+- [x] Remove "Enter Closing Stock" button from Daily Stock Register header
+- [x] Remove "+ Add Dip Reading" button from Daily Stock Register header
+- [x] Remove "+ Dip Entry" button from inside the table section
+- [x] Make Dip Reading cells non-clickable / read-only (remove onClick handlers)
+- [x] Remove inline dip edit dialog/form triggered from table cells
+- [x] Update description text (remove "Tap any Dip Reading cell to update")
+- [x] Remove AddDipDialog component usage and related state
+- [x] TypeScript: 0 errors after changes
