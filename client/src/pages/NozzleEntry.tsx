@@ -295,7 +295,7 @@ export default function NozzleEntry() {
             <Fuel className="w-5 h-5 text-primary" /> Nozzle Entry
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Log meter readings & collections — {format(new Date(shiftDate + "T00:00:00"), "dd MMM yyyy")}
+            Log meter readings & collections — {shiftDate && /^\d{4}-\d{2}-\d{2}$/.test(shiftDate) ? format(new Date(shiftDate + "T00:00:00"), "dd MMM yyyy") : "—"}
           </p>
         </div>
         {sessionId && (
@@ -321,7 +321,7 @@ export default function NozzleEntry() {
               <Input
                 type="date"
                 value={shiftDate}
-                onChange={e => setShiftDate(e.target.value)}
+                onChange={e => setShiftDate(e.target.value || TODAY)}
                 className="bg-secondary border-border/50"
               />
             </div>

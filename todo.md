@@ -671,3 +671,13 @@
 - [ ] Inventory: Remove DIP READINGS & VARIANCE section entirely (cards, state, hooks, imports)
 - [ ] Daily Stock Register: Add "Add Dip Reading" button in page header for manual date-based entry
 - [ ] Daily Stock Register: Manual entry dialog allows selecting date + entering Petrol and Diesel dip values
+
+## Bugs
+- [ ] Fix RangeError: Invalid time value crash on Nozzle Entry page (production) — unsafe date formatting with null/undefined values
+
+## Production Crash Fix — RangeError: Invalid time value (Nozzle Entry)
+- [x] Root cause: shiftDate date input could return empty string on mobile browsers, causing format(new Date("T00:00:00")) = Invalid Date crash
+- [x] Fix NozzleEntry.tsx line 298: guard format() call with regex validation before calling new Date()
+- [x] Fix NozzleEntry.tsx date input onChange: fallback to TODAY if value is empty string
+- [x] Fix CashHandover.tsx: guard voucherDate with null check and add T00:00:00 suffix
+- [x] Fix BankStatementUpload.tsx: guard createdAt with null check

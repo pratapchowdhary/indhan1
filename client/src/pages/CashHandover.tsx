@@ -446,7 +446,7 @@ function VoucherModal({ voucherId, onClose }: { voucherId: number; onClose: () =
             <div className="flex justify-between items-center">
               <div>
                 <p className="text-xs text-muted-foreground">Voucher Date</p>
-                <p className="font-semibold">{new Date(voucher.voucherDate).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</p>
+                <p className="font-semibold">{voucher.voucherDate ? new Date(voucher.voucherDate + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }) : "—"}</p>
               </div>
               <Badge className={
                 voucher.status === "reconciled" ? "bg-emerald-100 text-emerald-700" :

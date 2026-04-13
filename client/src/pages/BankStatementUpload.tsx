@@ -138,7 +138,7 @@ function UploadHistoryCard({ upload }: { upload: any }) {
             <p className="text-xs font-medium">{upload.filename}</p>
             <p className="text-[10px] text-muted-foreground">
               {upload.statement_from && `${upload.statement_from} → ${upload.statement_to}`}
-              {" · "}Uploaded {new Date(upload.createdAt).toLocaleDateString()}
+              {" · "}Uploaded {upload.createdAt ? new Date(upload.createdAt).toLocaleDateString() : ""}
             </p>
           </div>
         </div>
